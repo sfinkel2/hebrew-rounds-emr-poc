@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hebrew Rounds → Chameleon EMR (POC)</title>
+
+  <!-- Tailwind via CDN — no build step (spec §9). Used for the MODERN capture/review UI only. -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    // Minimal Tailwind config: brand palette + RTL-friendly font stack for the modern panes.
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef6ff', 100: '#d9ecff', 200: '#b6d8ff', 300: '#83bdff',
+              400: '#4a98ff', 500: '#1f73f5', 600: '#0f57d6', 700: '#0d46ac',
+              800: '#103c8a', 900: '#13366f',
+            },
+          },
+          fontFamily: {
+            sans: ['"Inter"', '"Segoe UI"', '"Heebo"', 'Arial', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="./modern.css" />
+  <link rel="stylesheet" href="./legacy-emr.css" />
+</head>
+
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen">
+
+  <!-- ===================== APP SHELL ===================== -->
+  <div class="max-w-7xl mx-auto px-4 py-5">
+
+    <!-- App title / brand bar (modern) -->
+    <header class="mb-4 flex items-center justify-between gap-4 flex-wrap">
+      <div class="flex items-center gap-3">
+        <div class="h-10 w-10 rounded-xl bg-brand-600 text-white grid place-items-center text-lg font-bold shadow-sm">ח</div>
+        <div>
+          <h1 class="text-xl font-bold text-slate-900 leading-tight" data-i18n="appTitle">Hebrew Voice Rounds → Chameleon Record</h1>
+          <p class="text-xs text-slate-500" dir="ltr">Hebrew Voice Rounds → Mock Chameleon EMR · POC demo</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <div id="mode-badge" class="text-xs font-medium px-3 py-1.5 rounded-full bg-slate-200 text-slate-600">
+          ● Checking connection…
+        </div>
+        <button id="lang-toggle" type="button"
+                class="text-xs font-semibold px-3 py-1.5 rounded-full bg-white ring-1 ring-slate-300 text-slate-700 hover:bg-slate-50 transition">
+          עברית
+        </button>
+      </div>
+    </header>
+
+    <!-- ===================== PATIENT HEADER ===================== -->
+    <section id="patient-header"
+             class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200 px-5 py-4 mb-5">
+      <div id="patient-header-body" class="text-slate-400 text-sm" data-i18n="patientLoading">Loading patient data…</div>
+    </section>
+
+    <!-- ===================== WORKFLOW STEPPER ===================== -->
+    <ol id="stepper" class="flex items-center gap-2 text-xs font-medium text-slate-500 mb-5 flex-wrap">
+      <li data-step="capture" class="step-pill" data-i18n="step1">1 · Record / Transcribe</li>
+      <li class="text-slate-300" data-i18n="stepArrow">→</li>
+      <li data-step="review" class="step-pill" data-i18n="step2">2 · Structure &amp; Check</li>
+      <li class="text-slate-300" data-i18n="stepArrow">→</li>
+      <li data-step="emr" class="step-pill" data-i18n="step3">3 · Chameleon Record</li>
+    </ol>
+
+    <!-- ===================== MAIN GRID ===================== -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
+
+      <!-- ---------- CAPTURE VIEW (MODERN) ---------- -->
+      <section id="capture-view"
+               class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200 p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-base font-semibold text-slate-900" data-i18n="captureTitle">Capture the round</h2>
+          <span class="text-[11px] uppercase tracking-wide text-brand-600 font-semibold">Modern</span>
+        </div>
+
+        <div class="flex flex-wrap gap-3 mb-4">
+          <button id="btn-record"
+                  class="inline-flex items-center gap-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-4 py-2.5 shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed">
+            <span id="record-dot" class="h-2.5 w-2.5 rounded-full bg-white/90"></span>
+            <span id="record-label">Record round</span>
+          </button>
+          <button id="btn-scripted"
+                  class="inline-flex items-center gap-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold px-4 py-2.5 ring-1 ring-slate-200 transition">
+            Use scripted round
+          </button>
+        </div>
+
+        <!-- Recording indicator + waveform -->
+        <div id="record-status" class="hidden items-center gap-3 mb-3 rounded-xl bg-rose-50 ring-1 ring-rose-100 px-3 py-2">
+          <span class="relative flex h-3 w-3">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
+          </span>
+          <span class="text-sm font-medium text-rose-700" data-i18n="recLabel">Recording…</span>
+          <canvas id="waveform" height="28" class="flex-1 h-7"></canvas>
+          <span id="record-timer" class="text-xs tabular-nums text-rose-600" dir="ltr">0:00</span>
+        </div>
+
+        <!-- Mic-permission / capture error banner -->
+        <div id="capture-error" class="hidden mb-3 rounded-xl bg-amber-50 ring-1 ring-amber-200 px-3 py-2.5 text-sm text-amber-800"></div>
+
+        <!-- Live Hebrew transcript panel (RTL always — clinical content is Hebrew) -->
+        <label class="block text-xs font-medium text-slate-500 mb-1" data-i18n="transcriptLabel">Transcript (Hebrew)</label>
+        <div id="transcript-panel"
+             dir="rtl"
+             class="min-h-[8rem] max-h-72 overflow-auto rounded-xl bg-slate-50 ring-1 ring-slate-200 p-3 text-sm leading-relaxed text-slate-700 whitespace-pre-wrap">
+          <span class="text-slate-400" dir="auto" data-i18n="transcriptPlaceholder">The transcript will appear here after recording or choosing the scripted round…</span>
+        </div>
+
+        <div class="mt-4 flex justify-end">
+          <button id="btn-structure"
+                  class="inline-flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 py-2.5 shadow-sm transition disabled:opacity-40 disabled:cursor-not-allowed"
+                  disabled>
+            Structure &amp; check →
+          </button>
+        </div>
+      </section>
+
+      <!-- ---------- REVIEW VIEW (MODERN) ---------- -->
+      <section id="review-view"
+               class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200 p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-base font-semibold text-slate-900" data-i18n="reviewTitle">Review &amp; approve</h2>
+          <span class="text-[11px] uppercase tracking-wide text-brand-600 font-semibold">Modern</span>
+        </div>
+
+        <!-- Global review error / retry banner -->
+        <div id="review-error" class="hidden mb-3 rounded-xl bg-rose-50 ring-1 ring-rose-200 px-3 py-2.5 text-sm text-rose-800"></div>
+
+        <!-- Approval summary -->
+        <div id="review-summary" class="hidden mb-3 text-xs text-slate-500"></div>
+
+        <!-- Field cards render here, grouped by section -->
+        <div id="fields-container" class="space-y-5">
+          <div id="review-empty" class="text-sm text-slate-400 py-8 text-center" data-i18n="reviewEmpty">
+            Structured fields will appear here after clicking “Structure &amp; check”.
+          </div>
+        </div>
+
+        <div class="mt-5 flex items-center justify-between gap-3 border-t border-slate-100 pt-4">
+          <div id="commit-hint" class="text-xs text-slate-400">Approve at least one field to commit.</div>
+          <button id="btn-commit"
+                  class="inline-flex items-center gap-2 rounded-xl bg-brand-700 hover:bg-brand-800 text-white text-sm font-semibold px-4 py-2.5 shadow-sm transition disabled:opacity-40 disabled:cursor-not-allowed"
+                  disabled>
+            Commit approved → Chameleon
+          </button>
+        </div>
+      </section>
+    </div>
+
+    <!-- ---------- EMR VIEW (LEGACY 90s/2000s) ---------- -->
+    <section id="emr-view" class="mt-6">
+      <div class="legacy-window">
+        <!-- title bar -->
+        <div class="legacy-titlebar">
+          <span class="legacy-titlebar-text">
+            <span class="legacy-titlebar-icon">▣</span>
+            Chameleon Clinical Workstation — General Surgery Ward — [Patient Record]
+          </span>
+          <span class="legacy-titlebar-buttons">
+            <span class="legacy-tbtn">_</span><span class="legacy-tbtn">▢</span><span class="legacy-tbtn legacy-tbtn-x">✕</span>
+          </span>
+        </div>
+
+        <!-- faux menu bar -->
+        <div class="legacy-menubar">
+          <span class="legacy-menu"><u>F</u>ile</span>
+          <span class="legacy-menu"><u>E</u>dit</span>
+          <span class="legacy-menu"><u>P</u>atient</span>
+          <span class="legacy-menu"><u>H</u>elp</span>
+          <span class="legacy-menu-spacer"></span>
+          <span class="legacy-menu-status" id="legacy-menu-status">Ready</span>
+        </div>
+
+        <!-- toolbar -->
+        <div class="legacy-toolbar">
+          <button class="legacy-btn" type="button">Open</button>
+          <button class="legacy-btn" type="button">Save</button>
+          <button class="legacy-btn" type="button">Print</button>
+          <span class="legacy-toolbar-sep"></span>
+          <button class="legacy-btn legacy-btn-pressed" type="button">Round Note</button>
+          <button class="legacy-btn" type="button" id="legacy-audit-btn">Audit Log</button>
+        </div>
+
+        <div class="legacy-body">
+          <!-- patient demographics strip -->
+          <div id="legacy-patient-strip" class="legacy-patient-strip">
+            <span class="legacy-loading">Loading patient record…</span>
+          </div>
+
+          <!-- round note table -->
+          <fieldset class="legacy-fieldset">
+            <legend>Ward Round Note</legend>
+            <table class="legacy-table" id="emr-note-table">
+              <thead>
+                <tr>
+                  <th style="width:26%">Field</th>
+                  <th>Documented Value</th>
+                </tr>
+              </thead>
+              <tbody id="emr-note-body">
+                <tr><td colspan="2" class="legacy-loading">Loading…</td></tr>
+              </tbody>
+            </table>
+          </fieldset>
+
+          <!-- audit log panel -->
+          <fieldset class="legacy-fieldset" id="legacy-audit-panel">
+            <legend>Audit Log</legend>
+            <table class="legacy-table legacy-table-audit" id="emr-audit-table">
+              <thead>
+                <tr>
+                  <th style="width:14%">Time</th>
+                  <th style="width:22%">Field</th>
+                  <th>Value</th>
+                  <th style="width:14%">Verdict</th>
+                  <th style="width:14%">Approver</th>
+                </tr>
+              </thead>
+              <tbody id="emr-audit-body">
+                <tr><td colspan="5" class="legacy-empty">No audit entries yet.</td></tr>
+              </tbody>
+            </table>
+          </fieldset>
+        </div>
+
+        <!-- status bar -->
+        <div class="legacy-statusbar">
+          <span class="legacy-status-cell" id="legacy-status-main">Chameleon EMR — mock</span>
+          <span class="legacy-status-cell" id="legacy-status-fields">Fields: 0</span>
+          <span class="legacy-status-cell">CAPS</span>
+          <span class="legacy-status-cell">NUM</span>
+        </div>
+      </div>
+    </section>
+
+    <footer class="mt-6 text-center text-[11px] text-slate-400" data-i18n="footerNote">
+      Synthetic data only · Classroom POC · No real PHI · Nothing is written to the record without human approval
+    </footer>
+  </div>
+
+  <script src="./app.js" type="module"></script>
+</body>
+</html>

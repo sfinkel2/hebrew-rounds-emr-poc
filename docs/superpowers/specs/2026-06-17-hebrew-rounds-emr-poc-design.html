@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hebrew Voice Rounds → Mock Chameleon EMR — POC Design</title>
+<style>
+  :root{
+    --ink:#1a2230; --muted:#5b6675; --line:#e3e8ef; --bg:#f6f8fb;
+    --accent:#1f6feb; --accent-soft:#eaf1ff; --good:#1a7f4b; --good-soft:#e7f6ee;
+    --warn:#9a6700; --warn-soft:#fff5e0; --code:#0f172a;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  .wrap{max-width:980px; margin:0 auto; padding:0 24px 96px}
+  header.hero{
+    background:linear-gradient(135deg,#1f3a5f,#274b78); color:#fff;
+    padding:48px 24px 40px; margin-bottom:40px;
+    border-bottom:4px solid var(--accent);
+  }
+  header.hero .inner{max-width:980px;margin:0 auto;padding:0 0}
+  header.hero h1{margin:0 0 10px; font-size:30px; line-height:1.25; letter-spacing:-.3px}
+  header.hero .sub{opacity:.9; font-size:15px; max-width:760px}
+  .pills{margin-top:18px; display:flex; flex-wrap:wrap; gap:8px}
+  .pill{background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.25);
+    color:#fff; padding:4px 11px; border-radius:999px; font-size:12.5px; font-weight:600}
+  h2{font-size:22px; margin:44px 0 14px; padding-bottom:8px; border-bottom:2px solid var(--line)}
+  h2 .n{color:var(--accent); font-variant-numeric:tabular-nums; margin-right:8px}
+  h3{font-size:16.5px; margin:26px 0 10px; color:#243048}
+  p{margin:12px 0}
+  ul,ol{margin:12px 0; padding-left:22px}
+  li{margin:6px 0}
+  strong{color:#11203a}
+  a{color:var(--accent); text-decoration:none}
+  a:hover{text-decoration:underline}
+  code{background:#eef1f6; padding:2px 6px; border-radius:5px; font-size:13.5px;
+    font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace; color:#22324c}
+  pre{background:var(--code); color:#dce6f5; padding:16px 18px; border-radius:10px;
+    overflow:auto; font-size:13px; line-height:1.55; border:1px solid #1e293b;
+    font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace}
+  pre code{background:none; padding:0; color:inherit}
+  table{border-collapse:collapse; width:100%; margin:16px 0; font-size:14.5px; background:#fff;
+    border:1px solid var(--line); border-radius:10px; overflow:hidden}
+  th,td{text-align:left; padding:10px 13px; border-bottom:1px solid var(--line); vertical-align:top}
+  th{background:#f0f4fa; font-weight:700; font-size:13px; text-transform:uppercase; letter-spacing:.3px; color:#3a475c}
+  tr:last-child td{border-bottom:none}
+  td code{font-size:12.5px}
+  .card{background:#fff; border:1px solid var(--line); border-radius:12px; padding:4px 22px 18px;
+    margin:16px 0; box-shadow:0 1px 2px rgba(16,30,54,.04)}
+  .callout{border-left:4px solid var(--accent); background:var(--accent-soft);
+    padding:12px 16px; border-radius:0 8px 8px 0; margin:18px 0; font-size:14.5px}
+  .callout.good{border-color:var(--good); background:var(--good-soft)}
+  .callout.warn{border-color:var(--warn); background:var(--warn-soft)}
+  .toc{background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px 20px; margin-bottom:8px}
+  .toc h4{margin:0 0 10px; font-size:13px; text-transform:uppercase; letter-spacing:.4px; color:var(--muted)}
+  .toc ol{columns:2; column-gap:32px; margin:0; padding-left:18px; font-size:14px}
+  .toc a{color:#33415c}
+  .status{display:inline-block; background:var(--good-soft); color:var(--good);
+    border:1px solid #bfe6ce; padding:3px 10px; border-radius:6px; font-weight:700; font-size:13px}
+  footer{margin-top:48px; padding-top:18px; border-top:1px solid var(--line); color:var(--muted); font-size:13px}
+  @media(max-width:640px){ .toc ol{columns:1} header.hero h1{font-size:24px} }
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="inner">
+    <h1>Hebrew Voice Rounds → Mock Chameleon EMR</h1>
+    <div class="sub">Proof-of-concept design spec. Capture a spoken Hebrew general-surgery round, structure it with an LLM, validate it with an LLM-as-judge plus deterministic guardrails so no clinical information is entered incorrectly, and integrate the approved note into a mock Chameleon (Eitan Health) EMR — live, on one patient.</div>
+    <div class="pills">
+      <span class="pill">MBA Healthcare Innovation Practicum</span>
+      <span class="pill">2026-06-17</span>
+      <span class="pill">Status: Approved</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <nav class="toc">
+    <h4>Contents</h4>
+    <ol>
+      <li><a href="#s1">Problem &amp; Goal</a></li>
+      <li><a href="#s2">Foundational Decisions</a></li>
+      <li><a href="#s3">End-to-End Flow</a></li>
+      <li><a href="#s4">Rounds Note Data Model</a></li>
+      <li><a href="#s5">Components &amp; Interfaces</a></li>
+      <li><a href="#s6">Safety Pipeline</a></li>
+      <li><a href="#s7">Demo Script</a></li>
+      <li><a href="#s8">Error Handling</a></li>
+      <li><a href="#s9">Tech Stack &amp; Running</a></li>
+      <li><a href="#s10">Testing</a></li>
+      <li><a href="#s11">Repository Layout</a></li>
+    </ol>
+  </nav>
+
+  <h2 id="s1"><span class="n">1.</span>Problem &amp; Goal</h2>
+  <p>General-surgery ward rounds generate dense, repetitive documentation that residents must research, transcribe onto paper, and re-enter into the hospital EMR (Eitan Health <strong>Chameleon</strong>). The burden is high and — critically — a large share of malpractice claims involve information that <em>was already present</em> but was missed or mis-recorded.</p>
+  <div class="callout"><strong>Goal.</strong> A proof-of-concept that captures a spoken Hebrew round via a chat-style voice-to-text interface, structures it into the ward's note format with an LLM, validates it with an LLM-as-judge plus deterministic guardrails so <strong>no clinical information is entered incorrectly</strong>, and integrates the approved note into a mock Chameleon EMR — live, on one patient.</div>
+  <p><strong>Non-goals (YAGNI for this POC):</strong> real Chameleon API integration; multi-patient rounds; user accounts/auth; persistence beyond a local store; mobile; production-grade STT tuning; real PHI.</p>
+
+  <h2 id="s2"><span class="n">2.</span>Foundational Decisions <span style="font-size:13px;font-weight:400;color:var(--muted)">(locked)</span></h2>
+  <div class="card">
+  <table>
+    <tr><th>Decision</th><th>Choice</th></tr>
+    <tr><td>Voice capture</td><td>Live mic with real STT, <strong>plus a scripted Hebrew round as on-stage fallback</strong></td></tr>
+    <tr><td>EMR target</td><td><strong>Mock Chameleon UI</strong> (no real hospital system)</td></tr>
+    <tr><td>Structuring + judge LLM</td><td><strong>Anthropic Claude</strong></td></tr>
+    <tr><td>Hebrew STT engine</td><td><strong>OpenAI Whisper API</strong> (best Hebrew accuracy)</td></tr>
+    <tr><td>Safety model</td><td><strong>Human approves before commit</strong> — hard gate, nothing auto-writes to the EMR</td></tr>
+    <tr><td>Demo scope</td><td><strong>One general-surgery patient, full round</strong> (capture → structure → judge → approve → EMR)</td></tr>
+    <tr><td>Deliverable</td><td><strong>Local runnable web app</strong></td></tr>
+    <tr><td>Visual style</td><td>Modern capture/review UI; <strong>mock Chameleon EMR rendered in a legacy 90s/2000s aesthetic</strong> to reflect integrating into existing hospital systems</td></tr>
+  </table>
+  </div>
+
+  <h2 id="s3"><span class="n">3.</span>End-to-End Flow</h2>
+<pre><code>[Mic: live Hebrew speech]
+   │  (scripted fallback transcript if live STT fails on stage)
+   ▼
+Whisper STT  ──► Hebrew transcript (RTL), with the raw text retained verbatim
+   ▼
+Claude STRUCTURING pass ──► draft note: per field { value, verbatim source span, confidence }
+   ▼
+Claude JUDGE pass (separate, adversarial) ──► per field { verdict, reason, risk flag }
+   ▼
+Deterministic GUARDRAILS (plain code) ──► enforce grounding, high-risk confirmation, vitals ranges
+   ▼
+Clinician REVIEW &amp; APPROVE screen (field-by-field, source quote highlighted)
+   │  ── HARD GATE: explicit approve click required ──
+   ▼
+Mock Chameleon EMR updates (before → after), each committed field logged to an audit trail</code></pre>
+  <div class="callout good">The hard gate (no EMR write without an explicit human approve action) is the spine of the "no incorrect clinical information" claim.</div>
+
+  <h2 id="s4"><span class="n">4.</span>Rounds Note Data Model</h2>
+  <p>Mirrors the ward note described by the clinical team. All fields optional (absent = not stated in the round). Each populated field carries grounding + judge metadata (see §6).</p>
+  <div class="card">
+  <table>
+    <tr><th>Group</th><th>Fields</th></tr>
+    <tr><td><strong>Subjective</strong></td><td>chief complaint (pre-surgery); relevant medical history; current illness / status. <em>Sources: patient/family, ER records.</em></td></tr>
+    <tr><td><strong>Objective / physical exam</strong></td><td>vital signs; general appearance; abdomen check; ports; central line &amp; drains</td></tr>
+    <tr><td><strong>Plan</strong></td><td>plan (≈2 sentences)</td></tr>
+    <tr><td><strong>Attending decisions / orders</strong></td><td>imaging; blood tests; medications; procedures / surgery</td></tr>
+    <tr><td><strong>Administrative</strong></td><td>discharge; request for more information</td></tr>
+  </table>
+  </div>
+  <p><code>vital signs</code> is itself a small structured object (temp, HR, BP, RR, SpO₂); <strong>each vital is its own <code>FieldRecord</code></strong> (e.g. <code>objective.vitals.hr</code>) with its own <code>sourceSpan</code>, so the grounding check and numeric range checks run per vital. All other fields are free text for the POC.</p>
+  <h3>Field record shape</h3>
+<pre><code>{
+  "fieldId": "objective.vitals.hr",
+  "value": "98",
+  "sourceSpan": "&lt;verbatim Hebrew substring from the transcript&gt;",
+  "confidence": 0.0,
+  "judge": { "verdict": "grounded | ungrounded | contradicted | ambiguous", "reason": "", "highRisk": false },
+  "guardrail": { "passed": true, "requiresConfirmation": false, "messages": [] },
+  "status": "pending | approved | rejected | edited",
+  "committedValue": null
+}</code></pre>
+
+  <h2 id="s5"><span class="n">5.</span>Components &amp; Interfaces</h2>
+  <p>The app is split into small, independently testable units. Each communicates through a defined HTTP or function interface; none reaches into another's internals.</p>
+  <h3>Backend (Node.js + Express) — holds both API keys server-side</h3>
+  <div class="card">
+  <table>
+    <tr><th>Unit</th><th>Responsibility</th><th>Interface</th></tr>
+    <tr><td><code>transcribe</code></td><td>Audio blob → Hebrew transcript via Whisper.</td><td><code>POST /api/transcribe</code> (multipart audio) → <code>{ transcript }</code></td></tr>
+    <tr><td><code>structure</code></td><td>Transcript → draft note with per-field grounding + confidence, via Claude. <strong>Prompt forbids inferring unstated facts.</strong> Populates <code>value</code>/<code>sourceSpan</code>/<code>confidence</code>; leaves <code>judge</code>/<code>guardrail</code>/<code>committedValue</code> empty.</td><td><code>POST /api/structure</code> <code>{ transcript }</code> → <code>{ fields }</code></td></tr>
+    <tr><td><code>judge</code></td><td>Transcript + draft note → per-field verdicts, via a <em>separate</em> adversarial Claude call that distrusts the extractor. Owns the <code>judge</code> sub-object, then <strong>runs <code>guardrails</code> server-side</strong> and returns fully-populated records.</td><td><code>POST /api/judge</code> <code>{ transcript, fields }</code> → <code>{ fields }</code></td></tr>
+    <tr><td><code>guardrails</code></td><td>Pure deterministic function (no LLM), called by <code>judge</code> after verdicts attach. Owns the <code>guardrail</code> sub-object. Applies grounding, high-risk, range rules (§6).</td><td><code>applyGuardrails(transcript, fields) → fields</code></td></tr>
+    <tr><td><code>commit</code></td><td>Approved fields → mock EMR store + audit log. Rejects any field lacking <code>status: "approved"</code>.</td><td><code>POST /api/commit</code> <code>{ patientId, fields }</code> → <code>{ emrState, auditEntries }</code></td></tr>
+    <tr><td><code>emr-store</code></td><td>In-memory + JSON-file mock Chameleon record for one seeded patient.</td><td><code>getEmr(patientId)</code>, <code>applyCommit(patientId, fields)</code></td></tr>
+    <tr><td><code>scripted-round</code></td><td>Serves the canned Hebrew transcript + matching audio for the fallback path.</td><td><code>GET /api/scripted-round</code> → <code>{ transcript, audioUrl }</code></td></tr>
+  </table>
+  </div>
+  <p><code>structure</code> and <code>judge</code> each request structured JSON output (tool / response-format) so no brittle parsing is needed; on malformed output they return a clear error rather than a partial note.</p>
+  <div class="callout"><strong>Common error envelope.</strong> All four API routes return errors as <code>{ error: { code, message } }</code> (HTTP 4xx/5xx), so the frontend's retry / "use scripted round" affordances stay uniform.</div>
+  <h3>Frontend (single-page, vanilla HTML/CSS/JS, RTL Hebrew, Tailwind via CDN — no build step)</h3>
+  <div class="card">
+  <table>
+    <tr><th>Unit</th><th>Responsibility</th></tr>
+    <tr><td><code>capture-view</code> (modern)</td><td>"Record round" (MediaRecorder + waveform) and "Use scripted round" buttons; live Hebrew transcript panel (RTL).</td></tr>
+    <tr><td><code>review-view</code> (modern)</td><td>Renders each field with its highlighted verbatim source quote, confidence color, judge verdict, and guardrail flag; per-field edit / approve / reject controls; "Commit approved → Chameleon" button (disabled until ≥1 field approved).</td></tr>
+    <tr><td><code>emr-view</code> (<strong>legacy 90s/2000s</strong>)</td><td>Mock Chameleon screen: chunky gray chrome, system/serif fonts, beveled buttons, dense bordered tables. Shows the record <strong>before → after</strong> commit; newly committed fields briefly highlighted.</td></tr>
+    <tr><td><code>patient-header</code></td><td>Seeded mock post-op patient: name, MRN, post-op day, procedure. (Synthetic data only.)</td></tr>
+  </table>
+  </div>
+
+  <h2 id="s6"><span class="n">6.</span>Safety Pipeline <span style="font-size:13px;font-weight:400;color:var(--muted)">(the differentiator)</span></h2>
+  <p>Three independent layers; a failure in any one is caught by the next, and the human gate sits above all of them.</p>
+  <ol>
+    <li><strong>Grounded extraction (Claude).</strong> For every field, return <code>value</code> + the <strong>exact verbatim transcript span</strong> that supports it + a <code>confidence</code>. System prompt: never infer or normalize clinical facts not explicitly stated; if absent, leave the field empty.</li>
+    <li><strong>Adversarial LLM-judge (separate Claude call).</strong> Given the raw transcript and the draft note, independently verify each field. Assigns a verdict (<code>grounded</code> / <code>ungrounded</code> / <code>contradicted</code> / <code>ambiguous</code>), a short reason, and a <code>highRisk</code> flag. The judge is told to assume the extractor may be wrong.</li>
+    <li><strong>Deterministic guardrails (plain code — catches the LLM itself failing).</strong>
+      <ul>
+        <li><strong>Grounding check:</strong> every field's <code>sourceSpan</code> must literally appear in the transcript (normalized substring match). Fail → forced to <code>requiresConfirmation</code> and flagged. Kills fabricated grounding.</li>
+        <li><strong>High-risk fields always confirm:</strong> medications/doses, imaging laterality, and procedures/surgery require explicit human confirmation regardless of confidence or verdict.</li>
+        <li><strong>Vitals range check:</strong> numeric vitals validated against plausible ranges; out-of-range → flagged.</li>
+      </ul>
+    </li>
+    <li><strong>Human review &amp; approve (hard gate).</strong> Each field shown with its highlighted source quote, confidence, judge verdict, and any guardrail message. Clinician edits, approves, or rejects per field. <code>commit</code> writes <strong>only</strong> <code>approved</code> fields.</li>
+    <li><strong>Audit trail.</strong> Each committed value logs: final value, original extracted value, transcript span, judge verdict, approver, timestamp. Rendered as a viewable log to evidence traceability.</li>
+  </ol>
+
+  <h2 id="s7"><span class="n">7.</span>Demo Script <span style="font-size:13px;font-weight:400;color:var(--muted)">(happy path, ~3 min)</span></h2>
+  <div class="card">
+  <ol>
+    <li>Show the legacy Chameleon screen for the seeded post-op patient — sparse/empty round note.</li>
+    <li>Click <strong>Record round</strong>, speak the Hebrew round (or hit <strong>Use scripted round</strong>). Live Hebrew transcript appears.</li>
+    <li>Click <strong>Structure</strong> → fields populate with highlighted source quotes, confidence colors, and judge verdicts.</li>
+    <li>Point out a <strong>flagged</strong> item (e.g. a medication forced to confirm; or a deliberately ungrounded line the guardrail caught) — the safety story.</li>
+    <li>Approve the good fields, fix/reject the flagged one.</li>
+    <li>Click <strong>Commit → Chameleon</strong>; the legacy EMR updates before → after; show the audit log.</li>
+  </ol>
+  </div>
+  <div class="callout warn">A deliberately tricky line is included in the scripted round so the judge/guardrail visibly catches something — proving the safety layer does real work.</div>
+
+  <h2 id="s8"><span class="n">8.</span>Error Handling</h2>
+  <div class="card">
+  <table>
+    <tr><th>Failure</th><th>Behavior</th></tr>
+    <tr><td>Mic permission denied / no device</td><td><code>capture-view</code> shows a clear prompt and offers the scripted-round path.</td></tr>
+    <tr><td>Live STT fails or low quality</td><td>One-click switch to the scripted round; transcript panel shows the error, never a silent hang.</td></tr>
+    <tr><td>Whisper / Claude API error or timeout</td><td>Endpoint returns a structured error; UI shows retry + "use scripted round".</td></tr>
+    <tr><td>Claude returns malformed JSON</td><td><code>structure</code>/<code>judge</code> return an explicit error (no partial/guessed note).</td></tr>
+    <tr><td>Field lacks grounding</td><td>Guardrail flags it; cannot be approved without explicit confirmation.</td></tr>
+    <tr><td>Commit attempted with zero approved fields</td><td>Button disabled; backend rejects.</td></tr>
+    <tr><td>Missing API keys at startup</td><td>Server fails fast with a readable message pointing to <code>.env</code>.</td></tr>
+  </table>
+  </div>
+
+  <h2 id="s9"><span class="n">9.</span>Tech Stack &amp; Running Locally</h2>
+  <ul>
+    <li><strong>Runtime:</strong> Node.js + Express (single process serves API + static frontend).</li>
+    <li><strong>Frontend:</strong> vanilla HTML/CSS/JS, RTL Hebrew support, Tailwind via CDN; legacy EMR styling in hand-written CSS. No bundler/build step.</li>
+    <li><strong>Audio:</strong> browser <code>MediaRecorder</code> → backend → Whisper.</li>
+    <li><strong>Keys:</strong> <code>.env</code> with <code>ANTHROPIC_API_KEY</code> and <code>OPENAI_API_KEY</code>, loaded server-side only; never sent to the browser.</li>
+    <li><strong>Mock EMR:</strong> in-memory object seeded from a JSON file, persisted to a separate working-state file on commit. <strong><code>npm start</code> reseeds from <code>patient.seed.json</code></strong> so every rehearsal starts clean; <code>npm run reset</code> restores the seed on demand.</li>
+    <li><strong>Run:</strong> <code>npm install</code> → <code>npm start</code> → open <code>http://localhost:3000</code>.</li>
+    <li><strong>README:</strong> setup, keys, run, and demo-script steps.</li>
+  </ul>
+
+  <h2 id="s10"><span class="n">10.</span>Testing</h2>
+  <ul>
+    <li><strong>Guardrails unit tests</strong> (pure function): grounded vs. fabricated span; high-risk field forces confirmation; in/out-of-range vitals. The safety-critical, LLM-independent checks.</li>
+    <li><strong>Commit unit tests:</strong> only <code>approved</code> fields persist; audit entries created; non-approved fields rejected.</li>
+    <li><strong>Structure/judge contract tests:</strong> with a fixed sample transcript and a stubbed LLM response, assert the <code>FieldRecord</code> shape and that UI-consumed fields are present.</li>
+    <li><strong>Manual demo rehearsal:</strong> full happy path + the deliberately-flagged line, on the scripted round, before class.</li>
+  </ul>
+
+  <h2 id="s11"><span class="n">11.</span>Repository Layout</h2>
+<pre><code>/server
+  index.js            # Express app, static serving, startup key check
+  routes/
+    transcribe.js     # POST /api/transcribe   (Whisper)
+    structure.js      # POST /api/structure     (Claude extraction)
+    judge.js          # POST /api/judge         (Claude adversarial)
+    commit.js         # POST /api/commit
+    scriptedRound.js  # GET  /api/scripted-round
+  lib/
+    guardrails.js     # pure deterministic checks
+    emrStore.js       # mock Chameleon record + audit log
+    llm.js            # Anthropic + OpenAI client wrappers, prompts
+  data/
+    patient.seed.json
+    scripted-round.json  (+ scripted-round audio asset)
+/public
+  index.html
+  app.js              # capture-view, review-view, emr-view, patient-header
+  modern.css
+  legacy-emr.css      # 90s/2000s Chameleon styling
+.env.example
+README.md</code></pre>
+
+  <footer>
+    Spec source: <code>docs/superpowers/specs/2026-06-17-hebrew-rounds-emr-poc-design.md</code> · Generated view for review.
+  </footer>
+</div>
+</body>
+</html>

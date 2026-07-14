@@ -1,0 +1,273 @@
+/* ============================================================================
+   modern.css — supplements Tailwind (CDN) for the MODERN capture + review panes.
+   Owns: stepper pills, field-card states, confidence colors, judge-verdict
+   badges, source-span highlight, the "needs confirmation" treatment, and small
+   animations. The LEGACY EMR look lives entirely in legacy-emr.css.
+   All Hebrew content is rendered RTL (dir="rtl" on the relevant panels).
+   ========================================================================== */
+
+:root {
+  --conf-high: #16a34a;   /* >= .85 */
+  --conf-mid:  #d97706;   /* .65–.85 */
+  --conf-low:  #dc2626;   /* < .65   */
+}
+
+/* Smooth section + card transitions */
+#review-view,
+#capture-view {
+  transition: box-shadow .2s ease;
+}
+
+/* ---------------- Stepper pills ---------------- */
+.step-pill {
+  padding: .25rem .75rem;
+  border-radius: 9999px;
+  background: #e2e8f0;
+  color: #475569;
+  white-space: nowrap;
+}
+.step-pill.is-active {
+  background: #1f73f5;
+  color: #fff;
+  box-shadow: 0 1px 4px rgba(31, 115, 245, .35);
+}
+.step-pill.is-done {
+  background: #dcfce7;
+  color: #166534;
+}
+
+/* ---------------- Field cards ---------------- */
+.field-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 14px;
+  background: #fff;
+  transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+}
+.field-card:hover { box-shadow: 0 2px 10px rgba(15, 23, 42, .05); }
+
+.field-card.is-approved {
+  border-color: #86efac;
+  background: #f0fdf4;
+}
+.field-card.is-rejected {
+  border-color: #fecaca;
+  background: #fef2f2;
+  opacity: .85;
+}
+.field-card.needs-confirm {
+  border-color: #f59e0b;
+  background: #fffbeb;
+  box-shadow: 0 0 0 1px #fcd34d inset;
+}
+.field-card.is-blocked {
+  border-color: #fca5a5;
+  background: #fff1f2;
+}
+
+/* group heading */
+.group-heading {
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: #64748b;
+  margin-bottom: .5rem;
+  padding-bottom: .25rem;
+  border-bottom: 1px solid #eef2f7;
+}
+
+/* field label row */
+.field-label {
+  font-weight: 600;
+  font-size: .9rem;
+  color: #0f172a;
+}
+.field-label .field-label-en {
+  font-weight: 400;
+  font-size: .72rem;
+  color: #94a3b8;
+  margin-inline-start: .4rem;
+}
+
+/* editable value box */
+.field-value {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 6px 9px;
+  font-size: .9rem;
+  color: #0f172a;
+  background: #fff;
+  resize: vertical;
+  min-height: 2.25rem;
+  line-height: 1.4;
+}
+.field-value:focus {
+  outline: none;
+  border-color: #1f73f5;
+  box-shadow: 0 0 0 3px rgba(31, 115, 245, .15);
+}
+.field-value.is-edited {
+  border-color: #6366f1;
+  background: #eef2ff;
+}
+
+/* verbatim source span — highlighted quote */
+.source-quote {
+  display: block;
+  font-size: .8rem;
+  background: #fef9c3;
+  border-inline-start: 3px solid #facc15;
+  border-radius: 6px;
+  padding: 5px 9px;
+  color: #713f12;
+  line-height: 1.5;
+}
+.source-quote .src-label {
+  font-size: .68rem;
+  color: #a16207;
+  font-weight: 600;
+  display: block;
+  margin-bottom: 1px;
+}
+.source-quote.is-missing {
+  background: #fee2e2;
+  border-inline-start-color: #ef4444;
+  color: #991b1b;
+}
+
+/* ---------------- Confidence chip ---------------- */
+.conf-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  font-size: .7rem;
+  font-weight: 600;
+  padding: .12rem .5rem;
+  border-radius: 9999px;
+}
+.conf-dot { width: .55rem; height: .55rem; border-radius: 9999px; }
+.conf-high { background: #dcfce7; color: #166534; }
+.conf-high .conf-dot { background: var(--conf-high); }
+.conf-mid  { background: #fef3c7; color: #92400e; }
+.conf-mid  .conf-dot { background: var(--conf-mid); }
+.conf-low  { background: #fee2e2; color: #991b1b; }
+.conf-low  .conf-dot { background: var(--conf-low); }
+
+/* ---------------- Judge verdict badge ---------------- */
+.verdict-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  font-size: .7rem;
+  font-weight: 700;
+  padding: .12rem .5rem;
+  border-radius: 9999px;
+  border: 1px solid transparent;
+}
+.verdict-grounded    { background: #dcfce7; color: #166534; border-color: #bbf7d0; }
+.verdict-ungrounded  { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
+.verdict-contradicted{ background: #ffe4e6; color: #9f1239; border-color: #fecdd3; }
+.verdict-ambiguous   { background: #fef3c7; color: #92400e; border-color: #fde68a; }
+
+/* high-risk chip */
+.risk-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .25rem;
+  font-size: .7rem;
+  font-weight: 700;
+  padding: .12rem .5rem;
+  border-radius: 9999px;
+  background: #fae8ff;
+  color: #86198f;
+  border: 1px solid #f5d0fe;
+}
+
+/* guardrail message line */
+.guardrail-msg {
+  font-size: .76rem;
+  color: #9a3412;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 7px;
+  padding: 4px 8px;
+  display: flex;
+  gap: .35rem;
+  align-items: flex-start;
+}
+.guardrail-msg.is-block {
+  color: #991b1b;
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+/* needs-confirmation callout + confirm button */
+.confirm-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+  font-size: .78rem;
+  background: #fffbeb;
+  border: 1px dashed #f59e0b;
+  border-radius: 8px;
+  padding: 6px 9px;
+  color: #92400e;
+}
+.btn-confirm {
+  font-size: .74rem;
+  font-weight: 700;
+  padding: .25rem .7rem;
+  border-radius: 7px;
+  background: #f59e0b;
+  color: #fff;
+  white-space: nowrap;
+}
+.btn-confirm:hover { background: #d97706; }
+.confirm-row.is-confirmed {
+  background: #ecfdf5;
+  border-style: solid;
+  border-color: #34d399;
+  color: #065f46;
+}
+
+/* per-field action buttons */
+.field-actions { display: flex; gap: .4rem; flex-wrap: wrap; }
+.btn-approve, .btn-reject {
+  font-size: .76rem;
+  font-weight: 600;
+  padding: .3rem .8rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  transition: all .12s ease;
+}
+.btn-approve { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
+.btn-approve:hover:not(:disabled) { background: #047857; color: #fff; }
+.btn-approve:disabled { opacity: .4; cursor: not-allowed; }
+.btn-approve.is-on { background: #047857; color: #fff; }
+
+.btn-reject { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
+.btn-reject:hover { background: #b91c1c; color: #fff; }
+.btn-reject.is-on { background: #b91c1c; color: #fff; }
+
+/* status pill on a field card */
+.status-pill {
+  font-size: .68rem;
+  font-weight: 700;
+  padding: .1rem .5rem;
+  border-radius: 9999px;
+}
+.status-pending  { background: #f1f5f9; color: #475569; }
+.status-approved { background: #dcfce7; color: #166534; }
+.status-rejected { background: #fee2e2; color: #991b1b; }
+.status-edited   { background: #eef2ff; color: #4338ca; }
+
+/* mode badge variants (set from app.js) */
+.mode-mock { background: #fef3c7 !important; color: #92400e !important; }
+.mode-live { background: #dcfce7 !important; color: #166534 !important; }
+.mode-err  { background: #fee2e2 !important; color: #991b1b !important; }
+
+/* waveform canvas baseline */
+#waveform { width: 100%; }

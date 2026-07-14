@@ -1,0 +1,163 @@
+{
+  "_comment": "Deterministic canned LLM outputs for the scripted round (spec §2 mock mode). GROUNDING INVARIANT: every NORMAL field's sourceSpan is an exact substring of scripted-round.json.transcript. EXACTLY ONE fabricated field (objective.vitals.temp 'no fever / אין חום') has a sourceSpan ('אין חום') that does NOT appear in the transcript, so the grounding guardrail blocks it.",
+  "structure": [
+    {
+      "fieldId": "subjective.currentIllness",
+      "value": "במהלך הלילה התלונן על כאבי בטן בינוניים",
+      "sourceSpan": "כאבי בטן בינוניים",
+      "confidence": 0.86
+    },
+    {
+      "fieldId": "objective.generalAppearance",
+      "value": "ערני ומשתף פעולה, מצב כללי טוב",
+      "sourceSpan": "המטופל ערני ומשתף פעולה, נראה במצב כללי טוב",
+      "confidence": 0.93
+    },
+    {
+      "fieldId": "objective.vitals.temp",
+      "value": "37.8",
+      "sourceSpan": "אין חום",
+      "confidence": 0.74
+    },
+    {
+      "fieldId": "objective.vitals.hr",
+      "value": "96",
+      "sourceSpan": "דופק 96",
+      "confidence": 0.95
+    },
+    {
+      "fieldId": "objective.vitals.bp",
+      "value": "128/76",
+      "sourceSpan": "לחץ דם 128 חלקי 76",
+      "confidence": 0.94
+    },
+    {
+      "fieldId": "objective.vitals.rr",
+      "value": "18",
+      "sourceSpan": "קצב נשימה 18",
+      "confidence": 0.92
+    },
+    {
+      "fieldId": "objective.vitals.spo2",
+      "value": "97",
+      "sourceSpan": "סטורציה 97 אחוז",
+      "confidence": 0.93
+    },
+    {
+      "fieldId": "objective.abdomen",
+      "value": "בטן רכה, רגישות קלה סביב הצלקת הניתוחית, ללא סימני גירוי צפקי",
+      "sourceSpan": "הבטן רכה, רגישות קלה סביב הצלקת הניתוחית, ללא סימני גירוי צפקי",
+      "confidence": 0.9
+    },
+    {
+      "fieldId": "objective.linesAndDrains",
+      "value": "זונדה מנקזת תוכן מרתי בכמות מתונה; נקז JP עם הפרשה סרוסנגוויאנית מועטה; צנתר מרכזי IJ ימני נקי ללא סימני זיהום",
+      "sourceSpan": "הזונדה מנקזת תוכן מרתי בכמות מתונה, נקז ה-JP עם הפרשה סרוסנגוויאנית מועטה, והצנתר המרכזי IJ ימני נקי ללא סימני זיהום",
+      "confidence": 0.88
+    },
+    {
+      "fieldId": "decisions.medications",
+      "value": "מורפיום 4 מ\"ג IV לפי הצורך",
+      "sourceSpan": "מורפיום 4 מ\"ג IV",
+      "confidence": 0.91
+    },
+    {
+      "fieldId": "decisions.imaging",
+      "value": "צילום בטן בעמידה לשלילת חסימה חוזרת",
+      "sourceSpan": "צילום בטן בעמידה",
+      "confidence": 0.89
+    },
+    {
+      "fieldId": "decisions.bloodTests",
+      "value": "ספירת דם ואלקטרוליטים",
+      "sourceSpan": "ספירת דם ואלקטרוליטים",
+      "confidence": 0.9
+    },
+    {
+      "fieldId": "plan.plan",
+      "value": "להתחיל נוזלים צלולים דרך הפה ולעקוב אחרי תפוקת הנקז; אם המצב יציב — לשקול הוצאת הזונדה מחר",
+      "sourceSpan": "להתחיל נוזלים צלולים דרך הפה ולעקוב אחרי תפוקת הנקז",
+      "confidence": 0.84
+    }
+  ],
+  "judge": [
+    {
+      "fieldId": "subjective.currentIllness",
+      "verdict": "grounded",
+      "reason": "התלונה על כאבי בטן בינוניים מופיעה מפורשות בתמלול.",
+      "highRisk": false
+    },
+    {
+      "fieldId": "objective.generalAppearance",
+      "verdict": "grounded",
+      "reason": "התיאור 'ערני ומשתף פעולה, מצב כללי טוב' תואם את התמלול.",
+      "highRisk": false
+    },
+    {
+      "fieldId": "objective.vitals.temp",
+      "verdict": "ungrounded",
+      "reason": "הביטוי 'אין חום' אינו מופיע בתמלול; הסקת היעדר חום אינה מבוססת על הנאמר.",
+      "highRisk": false
+    },
+    {
+      "fieldId": "objective.vitals.hr",
+      "verdict": "grounded",
+      "reason": "'דופק 96' נאמר במפורש.",
+      "highRisk": false
+    },
+    {
+      "fieldId": "objective.vitals.bp",
+      "verdict": "grounded",
+      "reason": "'לחץ דם 128 חלקי 76' נאמר במפורש.",
+      "highRisk": false
+    },
+    {
+      "fieldId": "objective.vitals.rr",
+      "verdict": "grounded",
+      "reason": "'קצב נשימה 18' נאמר במפורש.",
+      "highRisk": false
+    },
+    {
+      "fieldId": "objective.vitals.spo2",
+      "verdict": "grounded",
+      "reason": "'סטורציה 97 אחוז' נאמר במפורש.",
+      "highRisk": false
+    },
+    {
+      "fieldId": "objective.abdomen",
+      "verdict": "grounded",
+      "reason": "ממצאי הבטן תואמים את התמלול מילה במילה.",
+      "highRisk": false
+    },
+    {
+      "fieldId": "objective.linesAndDrains",
+      "verdict": "grounded",
+      "reason": "תיאור הזונדה, נקז ה-JP והצנתר המרכזי תואם את התמלול.",
+      "highRisk": false
+    },
+    {
+      "fieldId": "decisions.medications",
+      "verdict": "grounded",
+      "reason": "ההוראה 'מורפיום 4 מ\"ג IV' נאמרה במפורש; אופיואיד במינון — שדה בסיכון גבוה.",
+      "highRisk": true
+    },
+    {
+      "fieldId": "decisions.imaging",
+      "verdict": "grounded",
+      "reason": "'צילום בטן בעמידה' נאמר במפורש; הדמיה — שדה בסיכון גבוה.",
+      "highRisk": true
+    },
+    {
+      "fieldId": "decisions.bloodTests",
+      "verdict": "grounded",
+      "reason": "'ספירת דם ואלקטרוליטים' נאמר במפורש.",
+      "highRisk": false
+    },
+    {
+      "fieldId": "plan.plan",
+      "verdict": "grounded",
+      "reason": "התוכנית של נוזלים צלולים ומעקב אחר תפוקת הנקז נאמרה בתמלול.",
+      "highRisk": false
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "patientId": "5582931",
+  "patient": {
+    "name": "David Cohen",
+    "nameHe": "דוד כהן",
+    "age": 58,
+    "sex": "M",
+    "mrn": "5582931",
+    "postOpDay": 2,
+    "procedure": "Exploratory laparotomy with small-bowel resection for adhesive small-bowel obstruction (SBO)",
+    "procedureHe": "לפרוטומיה אקספלורטיבית עם כריתת מעי דק עקב חסימת מעי דק על רקע הידבקויות",
+    "ward": "General Surgery",
+    "wardHe": "כירורגיה כללית",
+    "lines": [
+      "NG tube",
+      "JP abdominal drain",
+      "Right IJ central line"
+    ],
+    "linesHe": [
+      "זונדה (NG)",
+      "נקז JP בטני",
+      "צנתר מרכזי IJ ימני"
+    ]
+  },
+  "note": {
+    "subjective.chiefComplaint": {
+      "value": "כאבי בטן והקאות עם חסימת מעי דק",
+      "committedValue": "כאבי בטן והקאות עם חסימת מעי דק"
+    },
+    "subjective.relevantHistory": {
+      "value": "מצב לאחר ניתוח בטן בעבר; ללא רקע קרדיאלי ידוע",
+      "committedValue": "מצב לאחר ניתוח בטן בעבר; ללא רקע קרדיאלי ידוע"
+    },
+    "objective.linesAndDrains": {
+      "value": "זונדה, נקז JP בטני, צנתר מרכזי IJ ימני",
+      "committedValue": "זונדה, נקז JP בטני, צנתר מרכזי IJ ימני"
+    }
+  },
+  "auditLog": []
+}

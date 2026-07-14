@@ -1,0 +1,257 @@
+/* ============================================================================
+   legacy-emr.css — hand-written 90s / early-2000s Windows clinical app look for
+   the mock "Chameleon" EMR (spec §5 emr-view, §2 visual style). Deliberately
+   un-modern: MS Sans Serif / Tahoma, small fonts, gray window chrome, beveled
+   outset buttons, gradient title bar, dense bordered tables with thin gridlines,
+   inset field boxes, faux menu bar. Scoped under #emr-view so it never bleeds
+   into the Tailwind-styled modern panes.
+   ========================================================================== */
+
+#emr-view {
+  --win-gray:   #c0c0c0;
+  --win-face:   #d4d0c8;
+  --win-light:  #ffffff;
+  --win-dark:   #808080;
+  --win-darker: #404040;
+  --win-text:   #000000;
+  --win-field:  #ffffff;
+  --title-a:    #000080;  /* classic navy */
+  --title-b:    #1084d0;  /* gradient tail */
+  font-family: "Tahoma", "MS Sans Serif", "Segoe UI", Geneva, sans-serif;
+  font-size: 11px;
+  color: var(--win-text);
+}
+
+/* ---------------- Window frame ---------------- */
+.legacy-window {
+  background: var(--win-face);
+  border: 2px solid;
+  border-color: var(--win-light) var(--win-darker) var(--win-darker) var(--win-light);
+  box-shadow: 1px 1px 0 var(--win-dark), 3px 3px 8px rgba(0, 0, 0, .35);
+  padding: 2px;
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+/* ---------------- Title bar (gradient) ---------------- */
+.legacy-titlebar {
+  background: linear-gradient(90deg, var(--title-a), var(--title-b));
+  color: #fff;
+  font-weight: bold;
+  font-size: 11px;
+  padding: 3px 4px 3px 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  letter-spacing: .2px;
+}
+.legacy-titlebar-text { display: flex; align-items: center; gap: 5px; }
+.legacy-titlebar-icon { color: #ffe; font-size: 12px; }
+.legacy-titlebar-buttons { display: flex; gap: 2px; }
+.legacy-tbtn {
+  display: inline-grid;
+  place-items: center;
+  width: 16px; height: 14px;
+  background: var(--win-face);
+  color: #000;
+  border: 1px solid;
+  border-color: var(--win-light) var(--win-darker) var(--win-darker) var(--win-light);
+  font-size: 9px;
+  line-height: 1;
+}
+.legacy-tbtn-x { font-weight: bold; }
+
+/* ---------------- Menu bar ---------------- */
+.legacy-menubar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--win-face);
+  border-bottom: 1px solid var(--win-dark);
+  padding: 2px 4px;
+}
+.legacy-menu {
+  padding: 1px 8px;
+  cursor: default;
+}
+.legacy-menu u { text-decoration: underline; }
+.legacy-menu:hover {
+  background: #000080;
+  color: #fff;
+}
+.legacy-menu-spacer { flex: 1; }
+.legacy-menu-status {
+  font-style: italic;
+  color: var(--win-darker);
+  padding-inline-end: 4px;
+}
+
+/* ---------------- Toolbar ---------------- */
+.legacy-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: var(--win-face);
+  padding: 3px 4px;
+  border-bottom: 1px solid var(--win-dark);
+}
+.legacy-toolbar-sep {
+  width: 2px;
+  height: 18px;
+  margin: 0 3px;
+  border-left: 1px solid var(--win-dark);
+  border-right: 1px solid var(--win-light);
+}
+
+/* ---------------- Beveled buttons ---------------- */
+.legacy-btn {
+  font-family: inherit;
+  font-size: 11px;
+  color: #000;
+  background: var(--win-face);
+  border: 2px solid;
+  border-color: var(--win-light) var(--win-darker) var(--win-darker) var(--win-light);
+  padding: 2px 10px;
+  min-width: 56px;
+  cursor: default;
+}
+.legacy-btn:active,
+.legacy-btn.legacy-btn-pressed {
+  border-color: var(--win-darker) var(--win-light) var(--win-light) var(--win-darker);
+  padding: 3px 9px 1px 11px;
+}
+.legacy-btn:focus { outline: 1px dotted #000; outline-offset: -4px; }
+
+/* ---------------- Body ---------------- */
+.legacy-body {
+  background: var(--win-face);
+  padding: 8px;
+}
+
+/* patient demographics strip — inset */
+.legacy-patient-strip {
+  background: var(--win-field);
+  border: 2px solid;
+  border-color: var(--win-darker) var(--win-light) var(--win-light) var(--win-darker);
+  padding: 6px 8px;
+  margin-bottom: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  font-size: 11px;
+}
+.legacy-demo-item { white-space: nowrap; }
+.legacy-demo-item b { color: #000080; }
+.legacy-demo-he {
+  font-weight: bold;
+  font-size: 12px;
+  direction: rtl;
+  unicode-bidi: isolate;
+}
+
+/* ---------------- Fieldset (grouped box) ---------------- */
+.legacy-fieldset {
+  border: 1px solid var(--win-dark);
+  border-top-color: var(--win-light);
+  border-left-color: var(--win-light);
+  padding: 8px;
+  margin-bottom: 10px;
+  background: var(--win-face);
+}
+.legacy-fieldset > legend {
+  font-weight: bold;
+  font-size: 11px;
+  padding: 0 4px;
+  color: #000080;
+}
+
+/* ---------------- Dense bordered tables ---------------- */
+.legacy-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--win-field);
+  font-size: 11px;
+}
+.legacy-table th {
+  background: var(--win-face);
+  border: 1px solid var(--win-dark);
+  border-top-color: var(--win-light);
+  border-left-color: var(--win-light);
+  text-align: start;
+  padding: 2px 6px;
+  font-weight: bold;
+  white-space: nowrap;
+}
+.legacy-table td {
+  border: 1px solid #b0b0b0;
+  padding: 3px 6px;
+  vertical-align: top;
+  line-height: 1.35;
+}
+.legacy-table tbody tr:nth-child(even) td { background: #f0f0ee; }
+
+/* Hebrew value cells render RTL inside the LTR chrome */
+.legacy-val-he {
+  direction: rtl;
+  unicode-bidi: plaintext;
+  text-align: right;
+}
+.legacy-field-name {
+  white-space: nowrap;
+  color: #000080;
+  font-weight: bold;
+}
+.legacy-empty,
+.legacy-loading {
+  color: var(--win-dark);
+  font-style: italic;
+  text-align: center;
+  padding: 6px;
+}
+
+/* newly committed field — brief highlight */
+.legacy-row-new td {
+  background: #ffffcc !important;
+  animation: legacyFlash 2.4s ease-out 1;
+}
+@keyframes legacyFlash {
+  0%   { background: #ffd34d !important; }
+  35%  { background: #fff2b0 !important; }
+  100% { background: #ffffcc !important; }
+}
+.legacy-new-tag {
+  font-size: 9px;
+  font-weight: bold;
+  color: #fff;
+  background: #c00000;
+  padding: 0 4px;
+  margin-inline-start: 6px;
+  border: 1px solid #800000;
+  vertical-align: middle;
+}
+
+/* audit table verdict cell coloring (kept muted/legacy) */
+.legacy-verdict-grounded   { color: #006000; font-weight: bold; }
+.legacy-verdict-ungrounded,
+.legacy-verdict-contradicted { color: #a00000; font-weight: bold; }
+.legacy-verdict-ambiguous  { color: #806000; font-weight: bold; }
+
+/* ---------------- Status bar ---------------- */
+.legacy-statusbar {
+  display: flex;
+  gap: 0;
+  background: var(--win-face);
+  border-top: 1px solid var(--win-light);
+  padding: 2px;
+}
+.legacy-status-cell {
+  border: 1px solid;
+  border-color: var(--win-darker) var(--win-light) var(--win-light) var(--win-darker);
+  padding: 1px 8px;
+  font-size: 11px;
+  color: var(--win-darker);
+}
+.legacy-status-cell:first-child { flex: 1; }
+
+/* keep the legacy window LTR even though the page is RTL */
+#emr-view { direction: ltr; }

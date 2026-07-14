@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Use the Demo — Hebrew Voice Rounds → Chameleon EMR</title>
+<style>
+  :root{
+    --ink:#1a2230; --muted:#5b6675; --line:#e3e8ef; --bg:#f6f8fb;
+    --accent:#1f6feb; --accent-soft:#eaf1ff; --good:#1a7f4b; --good-soft:#e7f6ee;
+    --warn:#9a6700; --warn-soft:#fff5e0; --danger:#b42318; --danger-soft:#fdecea;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:920px;margin:0 auto;padding:0 24px 96px}
+  header.hero{background:linear-gradient(135deg,#143b6b,#1f6feb);color:#fff;
+    padding:46px 24px 38px;margin-bottom:32px;border-bottom:4px solid #0d2c54}
+  header.hero .inner{max-width:920px;margin:0 auto}
+  header.hero h1{margin:0 0 8px;font-size:28px;letter-spacing:-.3px}
+  header.hero .sub{opacity:.92;font-size:15px;max-width:740px}
+  .pills{margin-top:16px;display:flex;flex-wrap:wrap;gap:8px}
+  .pill{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.28);
+    color:#fff;padding:4px 11px;border-radius:999px;font-size:12.5px;font-weight:600}
+  h2{font-size:21px;margin:40px 0 12px;padding-bottom:8px;border-bottom:2px solid var(--line)}
+  h3{font-size:16px;margin:22px 0 8px;color:#243048}
+  p{margin:11px 0}
+  ul,ol{margin:10px 0;padding-left:22px}
+  li{margin:6px 0}
+  code,kbd{background:#eef1f6;padding:2px 6px;border-radius:5px;font-size:13.5px;
+    font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;color:#22324c}
+  kbd{border:1px solid #cfd7e3;border-bottom-width:2px}
+  a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+  .he{font-family:"Segoe UI","Heebo",Arial,sans-serif;direction:rtl;unicode-bidi:isolate;
+    background:#0f57d6;color:#fff;padding:2px 9px;border-radius:6px;font-weight:600;
+    display:inline-block;font-size:14px;white-space:nowrap}
+  .he.ghost{background:#eef2f8;color:#143b6b;border:1px solid #d3deef}
+  .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:2px 22px 16px;
+    margin:14px 0;box-shadow:0 1px 2px rgba(16,30,54,.04)}
+  table{border-collapse:collapse;width:100%;margin:14px 0;font-size:14.5px;background:#fff;
+    border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f0f4fa;font-weight:700;font-size:12.5px;text-transform:uppercase;letter-spacing:.3px;color:#3a475c}
+  tr:last-child td{border-bottom:none}
+  .step{display:flex;gap:16px;align-items:flex-start;margin:18px 0;background:#fff;
+    border:1px solid var(--line);border-radius:14px;padding:18px 20px;box-shadow:0 1px 2px rgba(16,30,54,.04)}
+  .step .num{flex:0 0 38px;height:38px;width:38px;border-radius:50%;background:var(--accent);
+    color:#fff;font-weight:800;display:grid;place-items:center;font-size:17px;margin-top:2px}
+  .step .body{flex:1;min-width:0}
+  .step h3{margin:0 0 6px}
+  .callout{border-left:4px solid var(--accent);background:var(--accent-soft);
+    padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0;font-size:14.5px}
+  .callout.good{border-color:var(--good);background:var(--good-soft)}
+  .callout.warn{border-color:var(--warn);background:var(--warn-soft)}
+  .callout.danger{border-color:var(--danger);background:var(--danger-soft)}
+  .callout .t{font-weight:700;display:block;margin-bottom:2px}
+  .say{background:#0d2c54;color:#e9f1ff;border-radius:10px;padding:12px 16px;margin:10px 0;font-size:14.5px}
+  .say b{color:#9ec5ff}
+  .toc{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 20px;margin-bottom:6px}
+  .toc h4{margin:0 0 8px;font-size:12.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)}
+  .toc ol{columns:2;column-gap:30px;margin:0;padding-left:18px;font-size:14px}
+  .swatch{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:middle;border:1px solid rgba(0,0,0,.1)}
+  footer{margin-top:44px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);font-size:13px}
+  @media(max-width:640px){.toc ol{columns:1}header.hero h1{font-size:23px}}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="inner">
+    <h1>How to Use the Demo</h1>
+    <div class="sub">A step-by-step operator + presenter guide for the Hebrew-voice-rounds → mock Chameleon EMR proof-of-concept. The app interface is in Hebrew (right-to-left); every button below is shown with its on-screen Hebrew label and an English translation.</div>
+    <div class="pills">
+      <span class="pill">Runs offline in MOCK mode</span>
+      <span class="pill">~3-minute demo</span>
+      <span class="pill">No real patient data</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <nav class="toc">
+    <h4>Contents</h4>
+    <ol>
+      <li><a href="#start">1. Start the app</a></li>
+      <li><a href="#mode">2. Check the mode badge</a></li>
+      <li><a href="#layout">3. The screen layout</a></li>
+      <li><a href="#walk">4. Step-by-step walkthrough</a></li>
+      <li><a href="#legend">5. Reading a field card</a></li>
+      <li><a href="#safety">6. The safety moment</a></li>
+      <li><a href="#talk">7. Presenter talk-track</a></li>
+      <li><a href="#reset">8. Reset &amp; troubleshooting</a></li>
+    </ol>
+  </nav>
+
+  <h2 id="start">1. Start the app</h2>
+  <div class="card">
+    <p>In a terminal, from the project folder <code>C:\Practicum\Practicum_2</code>:</p>
+    <p><code>npm start</code></p>
+    <p>Then open <a href="http://localhost:3000">http://localhost:3000</a> in Chrome. Every <code>npm start</code> reseeds the patient record, so each rehearsal begins from the same clean slate.</p>
+    <div class="callout"><span class="t">No keys needed.</span> Leave <code>.env</code> keys blank and the whole demo runs <strong>offline</strong> on canned, deterministic data — the most reliable way to present in class. (Add API keys only if you want the live microphone + live AI path.)</div>
+  </div>
+
+  <h2 id="mode">2. Check the mode badge (top-right)</h2>
+  <p>Before you start talking, glance at the badge in the top-right corner so you know which path you're on:</p>
+  <table>
+    <tr><th>Badge</th><th>Meaning</th></tr>
+    <tr><td><span class="he">● מצב MOCK (לא מקוון)</span></td><td><strong>Mock / offline.</strong> Uses the scripted Hebrew round and canned AI output. Deterministic — recommended for the demo.</td></tr>
+    <tr><td><span class="he">● מצב LIVE (Whisper + Claude)</span></td><td><strong>Live.</strong> Real OpenAI Whisper transcription + real Claude structuring/judging. Needs API keys.</td></tr>
+    <tr><td><span class="he">● שגיאת חיבור</span></td><td>Connection error — the server isn't reachable. Make sure <code>npm start</code> is running.</td></tr>
+  </table>
+
+  <h2 id="layout">3. The screen layout</h2>
+  <p>The page is one screen with three areas, following the numbered stepper at the top (<span class="he ghost">1 · הקלטה / תמלול</span> → <span class="he ghost">2 · מבנה ובדיקה</span> → <span class="he ghost">3 · רשומת כמליאון</span>):</p>
+  <ul>
+    <li><strong>Patient header</strong> — the post-op patient: David Cohen / <span class="he ghost">דוד כהן</span>, age 58, day 2 after a small-bowel resection.</li>
+    <li><strong>Capture (left, modern)</strong> — <span class="he ghost">לכידת הסבב</span> — record or load the round and see the Hebrew transcript.</li>
+    <li><strong>Review &amp; approve (right, modern)</strong> — <span class="he ghost">סקירה ואישור</span> — the AI-structured note, field by field, with the safety checks.</li>
+    <li><strong>Chameleon EMR (bottom, deliberately legacy 90s look)</strong> — the mock hospital record the approved note lands in, plus an audit log. The retro styling makes the point: <em>we plug into the systems hospitals already use.</em></li>
+  </ul>
+
+  <h2 id="walk">4. Step-by-step walkthrough</h2>
+
+  <div class="step">
+    <div class="num">1</div>
+    <div class="body">
+      <h3>Load the round</h3>
+      <p>In the Capture panel, click <span class="he">השתמש בסבב מתוסרט</span> <em>(Use scripted round)</em>. The Hebrew round transcript appears in the transcript box on the right of that panel.</p>
+      <p><strong>Live alternative:</strong> click <span class="he">הקלט סבב</span> <em>(Record round)</em>, allow the microphone, speak the round in Hebrew, then click <span class="he">עצור הקלטה</span> <em>(Stop recording)</em>. (Only works in LIVE mode with a key; the scripted button is the safe choice on stage.)</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="num">2</div>
+    <div class="body">
+      <h3>Structure &amp; check the note</h3>
+      <p>Click the green <span class="he">בנה הערה ובדוק ←</span> <em>(Structure note &amp; check)</em> button. Behind the scenes this runs three things in order: the AI extracts each field with the exact quote that supports it, a separate adversarial AI "judge" re-checks every field against the transcript, and deterministic code guardrails run.</p>
+      <p>The Review panel fills with <strong>field cards</strong> grouped by section (subjective, exam/vitals, plan, decisions). See <a href="#legend">§5</a> for how to read a card.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="num">3</div>
+    <div class="body">
+      <h3>Approve the good fields</h3>
+      <p>For each correct field, click <span class="he">✓ אשר</span> <em>(Approve)</em>. To discard one, click <span class="he">✕ דחה</span> <em>(Reject)</em>. You can edit a value inline first — its status changes to <span class="he ghost">נערך</span> <em>(edited)</em> and the original is kept in the audit trail.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="num">4</div>
+    <div class="body">
+      <h3>Handle the flagged fields (the key moment)</h3>
+      <p>Two fields are deliberately flagged — this is your safety story (<a href="#safety">§6</a>). A flagged field's <span class="he">✓ אשר</span> button is <strong>disabled</strong> until you address the warning by clicking <span class="he">אשר ידנית</span> <em>(Confirm manually)</em>. The warning row then shows <span class="he ghost">✓ אושר לאחר בדיקה</span> <em>(confirmed after review)</em> and Approve unlocks.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="num">5</div>
+    <div class="body">
+      <h3>Commit to the EMR</h3>
+      <p>The <span class="he">בצע קומיט מאושר ← כמליאון</span> <em>(Commit approved → Chameleon)</em> button stays disabled until at least one field is approved — that's the hard human-in-the-loop gate. Click it, and the approved fields drop into the legacy Chameleon record at the bottom, with each write logged in the <strong>Audit Log</strong> (click <code>Audit Log</code> in the retro toolbar to show it).</p>
+    </div>
+  </div>
+
+  <h2 id="legend">5. Reading a field card</h2>
+  <p>Each card packs the whole safety story into one view:</p>
+  <table>
+    <tr><th>Element</th><th>What it tells you</th></tr>
+    <tr><td><strong>Field label</strong></td><td>Hebrew name + English subtitle (e.g. <span class="he ghost">תרופות</span> / Medications).</td></tr>
+    <tr><td><strong>Confidence chip</strong></td><td>A % with color — how sure the extractor was. <span class="swatch" style="background:#1a7f4b"></span>green = high, <span class="swatch" style="background:#9a6700"></span>amber = medium, <span class="swatch" style="background:#b42318"></span>red = low.</td></tr>
+    <tr><td><strong>Source quote</strong></td><td><span class="he ghost">מקור מהתמלול</span> <em>(source from transcript)</em> shows the exact Hebrew words that justify the value. If grounding fails, it reads <span class="he ghost">✕ מקור שלא נמצא בתמלול</span> <em>(source not found in transcript)</em>.</td></tr>
+    <tr><td><strong>Judge verdict</strong></td><td>grounded · ungrounded · contradicted · ambiguous — the independent AI judge's call.</td></tr>
+    <tr><td><strong>Warning row</strong></td><td>Appears when a guardrail requires a human check (ungrounded, or a high-risk order). Holds the <span class="he ghost">אשר ידנית</span> <em>(Confirm manually)</em> button.</td></tr>
+    <tr><td><strong>Status pill</strong></td><td><span class="he ghost">ממתין</span> pending · <span class="he ghost">אושר</span> approved · <span class="he ghost">נדחה</span> rejected · <span class="he ghost">נערך</span> edited.</td></tr>
+    <tr><td><strong>Actions</strong></td><td><span class="he ghost">✓ אשר</span> Approve · <span class="he ghost">✕ דחה</span> Reject.</td></tr>
+  </table>
+
+  <h2 id="safety">6. The safety moment — what to point at</h2>
+  <p>This is why the demo matters. Two cards are engineered to fail safely:</p>
+
+  <div class="callout danger">
+    <span class="t">A. The hallucination that gets blocked — Temperature / <span class="he ghost">חום</span></span>
+    The AI tried to record <strong>"no fever" (<span class="he ghost">אין חום</span>)</strong> — but no one ever said that in the round. The grounding guardrail catches it: the card shows <span class="he ghost">✕ מקור שלא נמצא בתמלול</span>, the judge marks it <strong>ungrounded</strong>, and you cannot approve it without an explicit override. <strong>This is the malpractice-prevention story</strong> — an invented clinical fact stopped before it reaches the chart.
+  </div>
+
+  <div class="callout warn">
+    <span class="t">B. The high-risk order that forces a second look — Medications / <span class="he ghost">תרופות</span></span>
+    The opioid order <strong>morphine 4&nbsp;mg IV (<span class="he ghost">מורפיום 4 מ"ג IV</span>)</strong> was captured <em>correctly</em> and is grounded — yet because medications are high-risk, the guardrail still forces a manual <span class="he ghost">אשר ידנית</span> confirmation before it can be approved. The point: even when the AI is right, dangerous fields always get a human's eyes.
+  </div>
+
+  <div class="callout good">
+    <span class="t">C. The hard gate</span>
+    Nothing reaches the Chameleon EMR automatically. The Commit button is dead until a human approves, and every committed value is written to the audit log with its source quote, the judge's verdict, and the approver. That's the whole "no clinical information entered incorrectly" claim, made visible.
+  </div>
+
+  <h2 id="talk">7. Presenter talk-track (~3 min)</h2>
+  <p>Optional script — say this while clicking:</p>
+  <div class="say"><b>[Show the legacy EMR]</b> "This is the kind of EMR a hospital ward actually runs — Chameleon. Right now this patient's round note is nearly empty, and a resident would spend their morning re-typing it by hand."</div>
+  <div class="say"><b>[Click "Use scripted round"]</b> "Instead, the round is just spoken — in Hebrew. Here's the transcript of the attending walking the team through this post-op patient."</div>
+  <div class="say"><b>[Click "Structure note &amp; check"]</b> "Our system structures it into the exact ward-note fields — and crucially, every field carries the exact quote it came from, plus an independent AI judge that re-checks it, plus hard-coded safety rules."</div>
+  <div class="say"><b>[Point to the Temperature card]</b> "Watch this one. The AI tried to write 'no fever' — but nobody said that. The system catches it as ungrounded and refuses to let it through. That's the error that, missed, becomes a lawsuit."</div>
+  <div class="say"><b>[Point to the Medications card]</b> "And this opioid order is correct — but because it's high-risk, we still force a human to sign off. Right when the AI is right, we don't get complacent."</div>
+  <div class="say"><b>[Approve good fields, confirm the flagged one, click Commit]</b> "The clinician approves, and only then does it flow into Chameleon — with a full audit trail of who approved what and why. Documentation that took an hour now takes a minute, and it's safer than before."</div>
+
+  <h2 id="reset">8. Reset &amp; troubleshooting</h2>
+  <table>
+    <tr><th>Situation</th><th>Do this</th></tr>
+    <tr><td>Want a clean record for the next run</td><td>Stop and re-run <code>npm start</code> (auto-reseeds), or run <code>npm run reset</code>.</td></tr>
+    <tr><td>Badge shows <span class="he ghost">● שגיאת חיבור</span></td><td>The server stopped. Re-run <code>npm start</code> and refresh the page.</td></tr>
+    <tr><td>Microphone button does nothing / errors</td><td>Mic + live transcription only work in LIVE mode (keys set). For the demo, use <span class="he ghost">השתמש בסבב מתוסרט</span> (scripted round).</td></tr>
+    <tr><td>Hebrew looks reversed/odd</td><td>Use Chrome; the page is built for right-to-left and renders best there.</td></tr>
+    <tr><td>Want to prove it's solid</td><td>Run <code>npm test</code> — 14 automated checks of the guardrails, commit rules, and grounding invariant.</td></tr>
+  </table>
+
+  <footer>
+    Synthetic data only · POC for an MBA healthcare-innovation practicum · No real PHI · No automatic write to the record without human approval.
+  </footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,7 @@
+node_modules
+.env
+server/data/emr-state.json
+
+# Course materials and local test artifacts — not part of the published prototype
+Class_Materials/
+.playwright-mcp/
