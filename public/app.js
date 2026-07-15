@@ -96,6 +96,14 @@ const STRINGS = {
     step3: '3 · Chameleon Record',
     stepArrow: '→',
     captureTitle: 'Capture the round',
+    btnPlaud: 'Pull from Plaud',
+    plaudPickerTitle: 'Choose a Plaud recording',
+    plaudPickerClose: 'Close',
+    plaudLoading: 'Loading recordings…',
+    plaudEmpty: 'No recordings found on this Plaud account.',
+    plaudNotConnectedHint: 'Plaud is not connected. Run the Plaud MCP login on this machine first.',
+    plaudNoTranscript: 'This recording has no transcript yet. Transcribe it in the Plaud app, then try again.',
+    plaudPullFailed: 'Pulling from Plaud failed: {msg}',
     btnScripted: 'Use scripted round',
     transcriptLabel: 'Transcript (Hebrew)',
     transcriptPlaceholder: 'The transcript will appear here after pulling from Plaud or choosing the scripted round…',
@@ -157,6 +165,14 @@ const STRINGS = {
     step3: '3 · רשומת כמליאון',
     stepArrow: '←',
     captureTitle: 'לכידת הסבב',
+    btnPlaud: 'משוך מ-Plaud',
+    plaudPickerTitle: 'בחר הקלטת Plaud',
+    plaudPickerClose: 'סגור',
+    plaudLoading: 'טוען הקלטות…',
+    plaudEmpty: 'לא נמצאו הקלטות בחשבון ה-Plaud.',
+    plaudNotConnectedHint: 'Plaud אינו מחובר. יש להריץ תחילה התחברות Plaud MCP במחשב זה.',
+    plaudNoTranscript: 'להקלטה זו אין עדיין תמלול. יש לתמלל אותה באפליקציית Plaud ולנסות שוב.',
+    plaudPullFailed: 'המשיכה מ-Plaud נכשלה: {msg}',
     btnScripted: 'השתמש בסבב מתוסרט',
     transcriptLabel: 'תמלול (עברית)',
     transcriptPlaceholder: 'התמלול יופיע כאן לאחר משיכה מ-Plaud או בחירת הסבב המתוסרט…',
@@ -238,6 +254,9 @@ function applyLanguage(lang) {
   document.querySelectorAll('[data-i18n]').forEach((n) => { n.textContent = t(n.dataset.i18n); });
 
   // State-dependent labels (not covered by the data-i18n walk).
+  const plaudBtn = $('#btn-plaud');
+  if (plaudBtn) plaudBtn.title = state.plaudConnected ? '' : t('plaudNotConnectedHint');
+  closePlaudPicker(); // row timestamps are locale-formatted; reopen re-renders them
   $('#btn-scripted').textContent = t('btnScripted');
   $('#btn-structure').textContent = t('btnStructure');
   $('#btn-commit').textContent = t('btnCommit');
@@ -262,6 +281,7 @@ const state = {
   transcript: '',
   fields: [],             // FieldRecord[] currently under review
   committedFieldIds: [],  // fieldIds committed in the most recent commit (for flash)
+  plaudConnected: false,
 };
 
 // ---------------------------------------------------------------------------
@@ -514,6 +534,86 @@ async function useScriptedRound() {
   } finally {
     $('#btn-scripted').disabled = false;
     $('#btn-scripted').textContent = t('btnScripted');
+  }
+}
+
+// --- Plaud pull ---
+async function initPlaudButton() {
+  const btn = $('#btn-plaud');
+  try {
+    const s = await api('/api/plaud/status');
+    state.plaudConnected = Boolean(s.connected);
+  } catch {
+    state.plaudConnected = false;
+  }
+  btn.disabled = !state.plaudConnected;
+  btn.title = state.plaudConnected ? '' : t('plaudNotConnectedHint');
+}
+
+function closePlaudPicker() {
+  $('#plaud-picker').classList.add('hidden');
+}
+
+function plaudErrorMessage(e) {
+  if (e.code === 'plaud_not_connected') return t('plaudNotConnectedHint');
+  if (e.code === 'plaud_no_transcript') return t('plaudNoTranscript');
+  return t('plaudPullFailed', { msg: e.message });
+}
+
+function formatDurationMs(ms) {
+  if (ms == null) return '';
+  const s = Math.round(ms / 1000);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
+
+async function openPlaudPicker() {
+  clearCaptureError();
+  const body = $('#plaud-picker-body');
+  $('#plaud-picker').classList.remove('hidden');
+  body.innerHTML = `<div class="text-sm text-slate-400">${esc(t('plaudLoading'))}</div>`;
+  try {
+    const data = await api('/api/plaud/recordings');
+    renderPlaudRecordings(data.recordings || []);
+  } catch (e) {
+    closePlaudPicker();
+    showCaptureError(plaudErrorMessage(e));
+  }
+}
+
+function renderPlaudRecordings(recordings) {
+  const body = $('#plaud-picker-body');
+  if (!recordings.length) {
+    body.innerHTML = `<div class="text-sm text-slate-400">${esc(t('plaudEmpty'))}</div>`;
+    return;
+  }
+  body.innerHTML = '';
+  for (const r of recordings) {
+    const row = el('button',
+      'w-full flex items-center justify-between gap-3 rounded-lg bg-white ring-1 ring-slate-200 hover:ring-brand-400 px-3 py-2 text-start text-sm transition disabled:opacity-60');
+    const when = r.startAt
+      ? new Date(r.startAt).toLocaleString(currentLang === 'he' ? 'he-IL' : 'en-GB', { dateStyle: 'short', timeStyle: 'short' })
+      : '';
+    // Recording names are user data — rendered verbatim, dir="auto".
+    row.innerHTML = `<span class="font-medium text-slate-700 truncate" dir="auto">${esc(r.name)}</span>
+      <span class="shrink-0 text-xs tabular-nums text-slate-500" dir="ltr">${esc(when)} · ${esc(formatDurationMs(r.durationMs))}</span>`;
+    row.addEventListener('click', () => pullPlaudTranscript(r.id, row));
+    body.appendChild(row);
+  }
+}
+
+async function pullPlaudTranscript(id, row) {
+  row.disabled = true;
+  try {
+    const data = await api(`/api/plaud/recordings/${encodeURIComponent(id)}/transcript`);
+    setTranscript(data.transcript || '');
+    closePlaudPicker();
+    clearCaptureError();
+    setStep('capture');
+  } catch (e) {
+    // Transcript pane deliberately untouched on failure (spec: no partial state).
+    showCaptureError(plaudErrorMessage(e));
+  } finally {
+    row.disabled = false;
   }
 }
 
@@ -860,6 +960,9 @@ async function init() {
 
   // Wire capture controls
   $('#lang-toggle').addEventListener('click', () => applyLanguage(currentLang === 'he' ? 'en' : 'he'));
+  $('#btn-plaud').addEventListener('click', openPlaudPicker);
+  $('#plaud-picker-close').addEventListener('click', closePlaudPicker);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePlaudPicker(); });
   $('#btn-scripted').addEventListener('click', useScriptedRound);
   $('#btn-structure').addEventListener('click', structureAndJudge);
   $('#btn-commit').addEventListener('click', commitApproved);
@@ -878,6 +981,7 @@ async function init() {
   }
 
   detectMode();
+  initPlaudButton();
 }
 
 document.addEventListener('DOMContentLoaded', init);
