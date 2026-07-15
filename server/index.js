@@ -57,6 +57,12 @@ export function createApp() {
   // Static modern + legacy frontend (no bundler).
   app.use(express.static(publicDir));
 
+  // Mode probe for the frontend badge (detectMode() in public/app.js expects
+  // lowercase 'mock' | 'live').
+  app.get('/api/health', (_req, res) => {
+    res.json({ mode: resolveMode().toLowerCase() });
+  });
+
   // API routes (spec §5). transcribe.js owns its own multer middleware.
   app.use('/api', transcribeRoute);
   app.use('/api', structureRoute);
