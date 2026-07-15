@@ -68,7 +68,7 @@
 
     <!-- ===================== WORKFLOW STEPPER ===================== -->
     <ol id="stepper" class="flex items-center gap-2 text-xs font-medium text-slate-500 mb-5 flex-wrap">
-      <li data-step="capture" class="step-pill" data-i18n="step1">1 · Record / Transcribe</li>
+      <li data-step="capture" class="step-pill" data-i18n="step1">1 · Pull / Transcribe</li>
       <li class="text-slate-300" data-i18n="stepArrow">→</li>
       <li data-step="review" class="step-pill" data-i18n="step2">2 · Structure &amp; Check</li>
       <li class="text-slate-300" data-i18n="stepArrow">→</li>
@@ -87,29 +87,13 @@
         </div>
 
         <div class="flex flex-wrap gap-3 mb-4">
-          <button id="btn-record"
-                  class="inline-flex items-center gap-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-4 py-2.5 shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed">
-            <span id="record-dot" class="h-2.5 w-2.5 rounded-full bg-white/90"></span>
-            <span id="record-label">Record round</span>
-          </button>
           <button id="btn-scripted"
                   class="inline-flex items-center gap-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold px-4 py-2.5 ring-1 ring-slate-200 transition">
             Use scripted round
           </button>
         </div>
 
-        <!-- Recording indicator + waveform -->
-        <div id="record-status" class="hidden items-center gap-3 mb-3 rounded-xl bg-rose-50 ring-1 ring-rose-100 px-3 py-2">
-          <span class="relative flex h-3 w-3">
-            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-            <span class="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
-          </span>
-          <span class="text-sm font-medium text-rose-700" data-i18n="recLabel">Recording…</span>
-          <canvas id="waveform" height="28" class="flex-1 h-7"></canvas>
-          <span id="record-timer" class="text-xs tabular-nums text-rose-600" dir="ltr">0:00</span>
-        </div>
-
-        <!-- Mic-permission / capture error banner -->
+        <!-- Capture error banner -->
         <div id="capture-error" class="hidden mb-3 rounded-xl bg-amber-50 ring-1 ring-amber-200 px-3 py-2.5 text-sm text-amber-800"></div>
 
         <!-- Live Hebrew transcript panel (RTL always — clinical content is Hebrew) -->
@@ -117,7 +101,7 @@
         <div id="transcript-panel"
              dir="rtl"
              class="min-h-[8rem] max-h-72 overflow-auto rounded-xl bg-slate-50 ring-1 ring-slate-200 p-3 text-sm leading-relaxed text-slate-700 whitespace-pre-wrap">
-          <span class="text-slate-400" dir="auto" data-i18n="transcriptPlaceholder">The transcript will appear here after recording or choosing the scripted round…</span>
+          <span class="text-slate-400" dir="auto" data-i18n="transcriptPlaceholder">The transcript will appear here after pulling from Plaud or choosing the scripted round…</span>
         </div>
 
         <div class="mt-4 flex justify-end">

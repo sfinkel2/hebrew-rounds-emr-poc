@@ -4,14 +4,16 @@
 //
 // Areas (spec §5):
 //   patient-header — seeded patient (Hebrew RTL name, MRN, age, POD, procedure)
-//   capture-view   — MediaRecorder + scripted-round fallback + live transcript
+//   capture-view   — Plaud pull + scripted-round fallback + live transcript
 //   review-view    — structured fields w/ source quote, confidence, judge verdict,
 //                    guardrail flag, per-field approve/reject + force-confirm
 //   emr-view       — legacy Chameleon record (before → after), audit log
 //
 // Backend contract (spec §5):
 //   GET  /api/scripted-round      -> { transcript, audioUrl }
-//   POST /api/transcribe (multipart audio) -> { transcript }
+//   GET  /api/plaud/status         -> { connected }
+//   GET  /api/plaud/recordings     -> { recordings }
+//   GET  /api/plaud/recordings/:id/transcript -> { transcript }
 //   POST /api/structure  { transcript }    -> { fields: FieldRecord[] }
 //   POST /api/judge      { transcript, fields } -> { fields: FieldRecord[] }
 //   POST /api/commit     { patientId, fields }  -> { emrState, auditEntries }
@@ -81,7 +83,7 @@ const STRINGS = {
     toggleLabel: 'עברית',
     modeChecking: '● Checking connection…',
     modeMock: '● MOCK mode (offline)',
-    modeLive: '● LIVE mode (Whisper + Claude)',
+    modeLive: '● LIVE mode (Claude)',
     modeError: '● Connection error',
     patientLoading: 'Loading patient data…',
     patientLoadFailed: 'Could not load patient data from the server.',
@@ -89,19 +91,14 @@ const STRINGS = {
     lblPod: 'Post-op day',
     lblProcedure: 'Procedure',
     lblLines: 'Lines/drains:',
-    step1: '1 · Record / Transcribe',
+    step1: '1 · Pull / Transcribe',
     step2: '2 · Structure & Check',
     step3: '3 · Chameleon Record',
     stepArrow: '→',
     captureTitle: 'Capture the round',
-    btnRecord: 'Record round',
-    btnStop: 'Stop recording',
     btnScripted: 'Use scripted round',
-    recLabel: 'Recording…',
     transcriptLabel: 'Transcript (Hebrew)',
-    transcriptPlaceholder: 'The transcript will appear here after recording or choosing the scripted round…',
-    transcribing: 'Transcribing the recording…',
-    transcribeFailedShort: 'Transcription failed.',
+    transcriptPlaceholder: 'The transcript will appear here after pulling from Plaud or choosing the scripted round…',
     btnStructure: 'Structure & check →',
     loading: 'Loading…',
     reviewTitle: 'Review & approve',
@@ -110,16 +107,10 @@ const STRINGS = {
     structProgress: 'Structuring the note and running judge + safety checks…',
     reviewErrorEmpty: 'An error occurred while structuring the note.',
     errNoFields: 'Structuring returned no fields.',
-    errNoTranscript: 'There is no transcript to structure. Record or choose the scripted round.',
+    errNoTranscript: 'There is no transcript to structure. Pull from Plaud or choose the scripted round.',
     retry: 'Try again',
     steerHtml: 'You can continue with the <button id="err-use-scripted" class="underline font-semibold">scripted round</button>.',
     errScriptedLoad: 'Could not load the scripted round: {msg}',
-    errNoMediaRecorder: 'This browser does not support microphone recording (MediaRecorder).',
-    errMicDenied: 'Microphone access was denied. Allow microphone permission, or use the scripted round.',
-    errNoMic: 'No available microphone was found.',
-    errNoAudio: 'No audio was captured. Try again or use the scripted round.',
-    errEmptyTranscript: 'The transcript came back empty. Try again or use the scripted round.',
-    errTranscribe: 'Transcription failed: {msg}',
     errNetwork: 'Network problem — cannot reach the server.',
     errServer: 'Server error (HTTP {status}).',
     errStructureFailed: 'Structuring the note failed.',
@@ -153,7 +144,7 @@ const STRINGS = {
     toggleLabel: 'English',
     modeChecking: '● בודק חיבור…',
     modeMock: '● מצב MOCK (לא מקוון)',
-    modeLive: '● מצב LIVE (Whisper + Claude)',
+    modeLive: '● מצב LIVE (Claude)',
     modeError: '● שגיאת חיבור',
     patientLoading: 'טוען נתוני מטופל…',
     patientLoadFailed: 'לא ניתן לטעון את נתוני המטופל מהשרת.',
@@ -161,19 +152,14 @@ const STRINGS = {
     lblPod: 'יום פוסט-ניתוחי',
     lblProcedure: 'ניתוח',
     lblLines: 'קווים/נקזים:',
-    step1: '1 · הקלטה / תמלול',
+    step1: '1 · משיכה / תמלול',
     step2: '2 · מבנה ובדיקה',
     step3: '3 · רשומת כמליאון',
     stepArrow: '←',
     captureTitle: 'לכידת הסבב',
-    btnRecord: 'הקלט סבב',
-    btnStop: 'עצור הקלטה',
     btnScripted: 'השתמש בסבב מתוסרט',
-    recLabel: 'מקליט…',
     transcriptLabel: 'תמלול (עברית)',
-    transcriptPlaceholder: 'התמלול יופיע כאן לאחר הקלטה או בחירת הסבב המתוסרט…',
-    transcribing: 'מתמלל את ההקלטה…',
-    transcribeFailedShort: 'התמלול נכשל.',
+    transcriptPlaceholder: 'התמלול יופיע כאן לאחר משיכה מ-Plaud או בחירת הסבב המתוסרט…',
     btnStructure: 'בנה הערה ובדוק ←',
     loading: 'טוען…',
     reviewTitle: 'סקירה ואישור',
@@ -182,16 +168,10 @@ const STRINGS = {
     structProgress: 'מבנה הערה ומריץ שופט + בדיקות בטיחות…',
     reviewErrorEmpty: 'אירעה שגיאה בעת בניית ההערה.',
     errNoFields: 'המבנה לא החזיר שדות.',
-    errNoTranscript: 'אין תמלול לבנות ממנו. הקלט או בחר את הסבב המתוסרט.',
+    errNoTranscript: 'אין תמלול לבנות ממנו. משוך מ-Plaud או בחר את הסבב המתוסרט.',
     retry: 'נסה שוב',
     steerHtml: 'אפשר להמשיך בעזרת <button id="err-use-scripted" class="underline font-semibold">הסבב המתוסרט</button>.',
     errScriptedLoad: 'לא ניתן לטעון את הסבב המתוסרט: {msg}',
-    errNoMediaRecorder: 'הדפדפן אינו תומך בהקלטת מיקרופון (MediaRecorder).',
-    errMicDenied: 'הגישה למיקרופון נדחתה. יש לאשר הרשאת מיקרופון, או להשתמש בסבב המתוסרט.',
-    errNoMic: 'לא נמצא מיקרופון זמין.',
-    errNoAudio: 'לא נקלט אודיו. נסה שוב או השתמש בסבב המתוסרט.',
-    errEmptyTranscript: 'התמלול חזר ריק. נסה שוב או השתמש בסבב המתוסרט.',
-    errTranscribe: 'התמלול נכשל: {msg}',
     errNetwork: 'בעיית רשת — לא ניתן להגיע לשרת.',
     errServer: 'שגיאת שרת (HTTP {status}).',
     errStructureFailed: 'בניית ההערה נכשלה.',
@@ -258,7 +238,6 @@ function applyLanguage(lang) {
   document.querySelectorAll('[data-i18n]').forEach((n) => { n.textContent = t(n.dataset.i18n); });
 
   // State-dependent labels (not covered by the data-i18n walk).
-  $('#record-label').textContent = state.recording ? t('btnStop') : t('btnRecord');
   $('#btn-scripted').textContent = t('btnScripted');
   $('#btn-structure').textContent = t('btnStructure');
   $('#btn-commit').textContent = t('btnCommit');
@@ -283,7 +262,6 @@ const state = {
   transcript: '',
   fields: [],             // FieldRecord[] currently under review
   committedFieldIds: [],  // fieldIds committed in the most recent commit (for flash)
-  recording: false,
 };
 
 // ---------------------------------------------------------------------------
@@ -501,10 +479,6 @@ function renderEmrView(emr) {
 // ===========================================================================
 // CAPTURE VIEW
 // ===========================================================================
-let mediaRecorder = null;
-let audioChunks = [];
-let audioCtx = null, analyser = null, rafId = null, recordTimerId = null, recordStart = 0;
-
 function showCaptureError(msg, steer = true) {
   const box = $('#capture-error');
   box.classList.remove('hidden');
@@ -542,117 +516,6 @@ async function useScriptedRound() {
     $('#btn-scripted').textContent = t('btnScripted');
   }
 }
-
-async function startRecording() {
-  clearCaptureError();
-  if (!navigator.mediaDevices || !window.MediaRecorder) {
-    showCaptureError(t('errNoMediaRecorder'));
-    return;
-  }
-  let stream;
-  try {
-    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  } catch (e) {
-    const denied = e && (e.name === 'NotAllowedError' || e.name === 'SecurityError');
-    showCaptureError(denied ? t('errMicDenied') : t('errNoMic'));
-    return;
-  }
-
-  audioChunks = [];
-  try {
-    mediaRecorder = new MediaRecorder(stream);
-  } catch {
-    mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-  }
-  mediaRecorder.addEventListener('dataavailable', (ev) => { if (ev.data.size) audioChunks.push(ev.data); });
-  mediaRecorder.addEventListener('stop', () => onRecordingStopped(stream));
-
-  mediaRecorder.start();
-  state.recording = true;
-  recordStart = Date.now();
-  $('#record-status').classList.remove('hidden');
-  $('#record-status').classList.add('flex');
-  $('#record-label').textContent = t('btnStop');
-  $('#btn-record').classList.add('!bg-rose-600');
-  startWaveform(stream);
-  startTimer();
-}
-
-function stopRecording() {
-  if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
-  state.recording = false;
-  $('#record-label').textContent = t('btnRecord');
-  $('#btn-record').classList.remove('!bg-rose-600');
-  $('#record-status').classList.add('hidden');
-  $('#record-status').classList.remove('flex');
-  stopWaveform();
-  stopTimer();
-}
-
-async function onRecordingStopped(stream) {
-  stream.getTracks().forEach((t) => t.stop());
-  const blob = new Blob(audioChunks, { type: (mediaRecorder && mediaRecorder.mimeType) || 'audio/webm' });
-  if (!blob.size) { showCaptureError(t('errNoAudio')); return; }
-
-  const panel = $('#transcript-panel');
-  panel.innerHTML = `<span class="text-slate-400">${esc(t('transcribing'))}</span>`;
-
-  const fd = new FormData();
-  fd.append('audio', blob, 'round.webm');
-  try {
-    const data = await api('/api/transcribe', { method: 'POST', body: fd, isForm: true });
-    setTranscript(data.transcript || '');
-    if (!data.transcript) showCaptureError(t('errEmptyTranscript'));
-  } catch (e) {
-    panel.innerHTML = `<span class="text-slate-400">${esc(t('transcribeFailedShort'))}</span>`;
-    showCaptureError(t('errTranscribe', { msg: e.message }));
-  }
-}
-
-// --- waveform + timer ---
-function startWaveform(stream) {
-  try {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const src = audioCtx.createMediaStreamSource(stream);
-    analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 256;
-    src.connect(analyser);
-    const canvas = $('#waveform');
-    const ctx = canvas.getContext('2d');
-    const w = canvas.width = canvas.clientWidth || 240;
-    const h = canvas.height;
-    const buf = new Uint8Array(analyser.frequencyBinCount);
-    const draw = () => {
-      rafId = requestAnimationFrame(draw);
-      analyser.getByteTimeDomainData(buf);
-      ctx.clearRect(0, 0, w, h);
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = '#e11d48';
-      ctx.beginPath();
-      const slice = w / buf.length;
-      let x = 0;
-      for (let i = 0; i < buf.length; i++) {
-        const y = (buf[i] / 128.0) * (h / 2);
-        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-        x += slice;
-      }
-      ctx.stroke();
-    };
-    draw();
-  } catch { /* waveform is decorative; ignore failures */ }
-}
-function stopWaveform() {
-  if (rafId) cancelAnimationFrame(rafId), rafId = null;
-  if (audioCtx) { try { audioCtx.close(); } catch {} audioCtx = null; }
-}
-function startTimer() {
-  const t = $('#record-timer');
-  recordTimerId = setInterval(() => {
-    const s = Math.floor((Date.now() - recordStart) / 1000);
-    t.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-  }, 250);
-}
-function stopTimer() { if (recordTimerId) clearInterval(recordTimerId), recordTimerId = null; }
 
 // ===========================================================================
 // REVIEW VIEW — structure + judge, render field cards, approve/reject/confirm
@@ -997,7 +860,6 @@ async function init() {
 
   // Wire capture controls
   $('#lang-toggle').addEventListener('click', () => applyLanguage(currentLang === 'he' ? 'en' : 'he'));
-  $('#btn-record').addEventListener('click', () => (state.recording ? stopRecording() : startRecording()));
   $('#btn-scripted').addEventListener('click', useScriptedRound);
   $('#btn-structure').addEventListener('click', structureAndJudge);
   $('#btn-commit').addEventListener('click', commitApproved);
