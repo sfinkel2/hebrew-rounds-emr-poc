@@ -4,8 +4,9 @@
 **Status:** Approved by user (Approach A: direct REST, reuse MCP login)
 **Branch:** `plaud-integration` (worktree)
 **Scope:** new `server/lib/plaud.js`, new `server/routes/plaud.js`, `server/index.js`
-(mount route), `public/index.html`, `public/app.js`, `server/tests/plaud.test.js`,
-`CLAUDE.md`. Pipeline files (`llm.js` structure/judge, `guardrails.js`,
+(mount route + mode resolution), `public/index.html`, `public/app.js`,
+`server/tests/plaud.test.js`, `CLAUDE.md`, `docs/how-to-use-the-demo.html`.
+Pipeline files (`llm.js` structure/judge, `guardrails.js`,
 `fields.js`, commit path) untouched.
 
 ## Goal
@@ -75,7 +76,7 @@ the browser, deterministic core for testability.
 
 - `createPlaudClient({ fetchImpl, tokenPath } = {})` — dependency-injected
   factory (defaults: global `fetch`, `join(homedir(), ".plaud",
-  "tokens-mcp.json")`). Tests pass fakes; routes use the default singleton.
+  "tokens-mcp.json")`). Tests pass fakes (fake fetch, temp-dir token file).
 - `listRecordings()` → trimmed `[{id, name, startAt, durationMs}]`, newest
   10\. Recording names are user data — passed through verbatim.
 - `getTranscript(fileId)` → `{ transcript }` where `transcript` is the
@@ -97,6 +98,11 @@ the browser, deterministic core for testability.
 
 ### `server/routes/plaud.js`
 
+Exports `createPlaudRouter(plaudClient)` — the injection seam. `server/index.js`
+mounts `createPlaudRouter(createPlaudClient())`; tests mount
+`createPlaudRouter(createPlaudClient({ fetchImpl: fake, tokenPath: tmp }))` on
+a bare Express app, so no test touches the network or the real home dir.
+
 - `GET /api/plaud/status` → `{ connected: boolean }` (token file exists and
   parses; no network call — cheap enough to hit on page load).
 - `GET /api/plaud/recordings` → `{ recordings: [...] }`.
@@ -109,9 +115,28 @@ Mounted in `server/index.js` alongside the existing routes.
 
 ## Frontend design
 
-- **Removed:** `#btn-record`, MediaRecorder capture code, recording state
-  (`isRecording`, mic labels), and the UI call to `/api/transcribe`. The
-  `STRINGS` keys used only by mic recording are deleted (both languages).
+- **Removed:** `#btn-record` and its satellite markup (`#record-status`,
+  `#waveform`, `#record-timer`), the MediaRecorder capture code
+  (`startRecording`/`stopRecording`/`onRecordingStopped`, waveform, timer,
+  `state.recording`), the UI call to `/api/transcribe`, the init-time
+  `$('#btn-record').addEventListener(...)` wiring, and — critically — the
+  `#record-label` refresh line inside `applyLanguage()` (either left in place
+  null-derefs at startup or on every language switch). `STRINGS` keys used
+  only by mic recording are deleted in both languages.
+- **Reworded, not deleted** (shared strings that currently mention
+  recording, EN + HE): `step1` (stepper "1 · Record / Transcribe" → pull/
+  transcript wording), `transcriptPlaceholder` ("…after recording or choosing
+  the scripted round…" → Plaud/scripted wording), `errNoTranscript` ("Record
+  or choose the scripted round." → "Pull from Plaud or choose the scripted
+  round."). The stale backend-contract comment block at the top of `app.js`
+  (still lists `POST /api/transcribe` as a UI contract) is updated in the
+  same pass.
+- **Mode badge:** with the mic gone, Whisper no longer gates liveness.
+  `resolveMode()` in `server/index.js` treats the session as LIVE when
+  `ANTHROPIC_API_KEY` is set (no longer requires `OPENAI_API_KEY`), and the
+  `modeLive` string drops the "Whisper + " mention in **both** EN and HE, as
+  does the server startup console log. Otherwise the badge would say MOCK
+  during the real Plaud demo.
 - **Added:** `#btn-plaud` ("Pull from Plaud") next to "Scripted round" in the
   capture panel.
   - On init, `GET /api/plaud/status`; if not connected the button is disabled
@@ -124,8 +149,9 @@ Mounted in `server/index.js` alongside the existing routes.
   - Row click → `GET /api/plaud/recordings/:id/transcript` → on success:
     `setTranscript(transcript)`, close picker, enable "Structure & check" —
     the exact post-transcript state the scripted round produces.
-  - Failures (incl. `plaud_no_transcript`) → existing capture status line, in
-    the current UI language; transcript pane untouched.
+  - Failures (incl. `plaud_no_transcript`) → the existing `#capture-error`
+    banner via `showCaptureError()`, in the current UI language, keeping its
+    built-in "use the scripted round" steer link; transcript pane untouched.
 - **i18n:** new `STRINGS` keys (EN + HE): button label, picker title, loading,
   empty list, not-connected hint, no-transcript message, generic pull error.
   Clinical/data content (recording names, transcript) is never translated.
@@ -135,14 +161,16 @@ Mounted in `server/index.js` alongside the existing routes.
 
 | Failure | Where surfaced | Message intent |
 |---|---|---|
-| No token file / refresh failed | button disabled (status) or capture status line (mid-flow) | "Plaud not connected — run the MCP login" |
-| Recording not yet transcribed | capture status line | "No transcript yet — transcribe it in the Plaud app, then retry" |
-| Upstream/network error | capture status line | generic retry message |
+| No token file / refresh failed | button disabled (status) or `#capture-error` banner (mid-flow) | "Plaud not connected — run the MCP login" |
+| Recording not yet transcribed | `#capture-error` banner | "No transcript yet — transcribe it in the Plaud app, then retry" |
+| Upstream/network error | `#capture-error` banner | generic retry message |
 | Zero recordings | picker body | empty-state string |
 
 ## Testing
 
-`server/tests/plaud.test.js` (node --test, in-process app like existing tests):
+`server/tests/plaud.test.js` (node --test; existing `*.test.js` files test
+libs directly — the in-process-HTTP pattern to copy for route tests lives in
+`server/tests/smoke.mjs`):
 
 1. Pure helpers: real captured response shape → correct joined transcript;
    missing `transaction` item → `null`; `isTokenStale` boundary cases
