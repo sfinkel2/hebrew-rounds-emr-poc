@@ -47,9 +47,11 @@ structure → judge → guardrails → approve → commit pipeline unchanged.
 - `GET /open/third-party/files/?page=1&page_size=10` — recording list
   (`{type:"list", data:[{id, name, start_at, duration, ...}], page, page_size}`;
   `duration` is milliseconds).
-- `GET /open/third-party/files/{fileId}` — file detail: an array of data
-  items; the transcript is the item with `data_type: "transaction"`, whose
-  `data_content` is a **JSON string** encoding
+- `GET /open/third-party/files/{fileId}` — file detail: a file **object**
+  whose data items sit under `source_list` (live-verified 2026-07-15; the
+  MCP's get_transcript tool unwraps that field); the transcript is the item
+  with `data_type: "transaction"`, whose `data_content` is a **JSON string**
+  encoding
   `[{content, speaker, start_time, end_time}, ...]`. Untranscribed recordings
   have no `transaction` item.
 - Auth: `Authorization: Bearer <access_token>`.
