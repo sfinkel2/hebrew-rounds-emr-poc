@@ -231,6 +231,68 @@ test('401 from Plaud → single refresh + retry → success', async () => {
   }
 });
 
+test('network failure during refresh → 502 plaud_upstream_error (not not_connected)', async () => {
+  const now = 2_000_000_000_000;
+  const { dir, path } = await tempTokenFile({ ...FRESH, expires_at: now - 1 });
+  try {
+    const ff = fakeFetch([
+      [REFRESH, [() => { throw new Error('boom'); }]],
+    ]);
+    const client = createPlaudClient({ fetchImpl: ff, tokenPath: path, now: () => now });
+    await withApp(client, async (base) => {
+      const res = await fetch(`${base}/api/plaud/recordings`);
+      assert.equal(res.status, 502);
+      assert.equal((await res.json()).error.code, 'plaud_upstream_error');
+    });
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('concurrent stale requests share one refresh (single-flight)', async () => {
+  const now = 2_000_000_000_000;
+  const { dir, path } = await tempTokenFile({ ...FRESH, expires_at: now - 1 });
+  try {
+    const ff = fakeFetch([
+      [REFRESH, [jsonRes({ access_token: 'AT2', refresh_token: 'RT2', expires_in: 3600 })]],
+      [LIST_URL, [jsonRes(LISTING), jsonRes(LISTING)]],
+    ]);
+    const client = createPlaudClient({ fetchImpl: ff, tokenPath: path, now: () => now });
+    await withApp(client, async (base) => {
+      const [a, b] = await Promise.all([
+        fetch(`${base}/api/plaud/recordings`),
+        fetch(`${base}/api/plaud/recordings`),
+      ]);
+      assert.equal(a.status, 200);
+      assert.equal(b.status, 200);
+    });
+    assert.equal(ff.calls.filter((c) => c.url.startsWith(REFRESH)).length, 1);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('refresh 200 without access_token → 502 and nothing persisted', async () => {
+  const now = 2_000_000_000_000;
+  const { dir, path } = await tempTokenFile({ ...FRESH, expires_at: now - 1 });
+  try {
+    const ff = fakeFetch([
+      [REFRESH, [jsonRes({})]],
+    ]);
+    const client = createPlaudClient({ fetchImpl: ff, tokenPath: path, now: () => now });
+    await withApp(client, async (base) => {
+      const res = await fetch(`${base}/api/plaud/recordings`);
+      assert.equal(res.status, 502);
+      assert.equal((await res.json()).error.code, 'plaud_upstream_error');
+    });
+    // The malformed response must not have been written over the shared token file.
+    const onDisk = JSON.parse(await readFile(path, 'utf8'));
+    assert.equal(onDisk.access_token, 'AT');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test('recording without a transcript → 502 plaud_no_transcript', async () => {
   const { dir, path } = await tempTokenFile(FRESH);
   try {

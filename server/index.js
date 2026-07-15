@@ -7,7 +7,8 @@
 //   - Reseed the mock EMR working state from patient.seed.json on startup so
 //     every `npm start` begins from a clean, identical patient (spec §9).
 //   - Resolve and print the operating MODE — MOCK (deterministic, no network) vs
-//     LIVE (Claude structure/judge) — using the same rule the lib layer uses:
+//     LIVE (Claude structure/judge) — using the Claude rule the lib layer uses
+//     for structure/judge:
 //       MOCK when DEMO_MODE=mock, or when an API key is missing.
 //   - Serve the static frontend from /public (no build step).
 //   - Mount all API routes under /api.
