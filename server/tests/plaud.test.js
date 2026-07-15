@@ -70,3 +70,194 @@ test('isTokenStale honors the 60s skew', () => {
   assert.equal(isTokenStale({ expires_at: now + 30_000 }, now), true);   // inside skew
   assert.equal(isTokenStale({ expires_at: now - 1 }, now), true);        // expired
 });
+
+// ── Route contracts ──────────────────────────────────────────────────────────
+import express from 'express';
+import { createPlaudClient } from '../lib/plaud.js';
+import { createPlaudRouter } from '../routes/plaud.js';
+
+const API = 'https://platform.plaud.ai/developer/api';
+const LIST_URL = `${API}/open/third-party/files/?page=1&page_size=10`;
+const REFRESH = `${API}/oauth/third-party/access-token/refresh`;
+
+function jsonRes(body, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+/** fake fetch: routes each URL to a queue of responses; records calls. */
+function fakeFetch(routes) {
+  const calls = [];
+  const impl = async (url, opts = {}) => {
+    calls.push({ url: String(url), opts });
+    for (const [prefix, responses] of routes) {
+      if (String(url).startsWith(prefix)) {
+        const r = responses.shift();
+        if (!r) throw new Error(`fakeFetch: exhausted responses for ${prefix}`);
+        return typeof r === 'function' ? r() : r;
+      }
+    }
+    throw new Error(`fakeFetch: unrouted URL ${url}`);
+  };
+  impl.calls = calls;
+  return impl;
+}
+
+async function withApp(client, fn) {
+  const app = express();
+  app.use('/api', createPlaudRouter(client));
+  const server = await new Promise((resolve) => {
+    const s = app.listen(0, () => resolve(s));
+  });
+  const base = `http://127.0.0.1:${server.address().port}`;
+  try {
+    await fn(base);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+}
+
+async function tempTokenFile(tokens) {
+  const dir = await mkdtemp(join(tmpdir(), 'plaud-test-'));
+  const path = join(dir, 'tokens-mcp.json');
+  if (tokens) await writeFile(path, JSON.stringify(tokens), 'utf8');
+  return { dir, path };
+}
+
+const FRESH = { access_token: 'AT', refresh_token: 'RT', token_type: 'Bearer' };
+const LISTING = {
+  type: 'list',
+  data: [
+    { id: 'f1', name: 'סבב בוקר', created_at: '2026-07-15T06:57:45', start_at: '2026-07-15T06:57:25', duration: 8000 },
+  ],
+  page: 1,
+  page_size: 10,
+};
+
+test('GET /api/plaud/status reflects token-file presence', async () => {
+  const missing = createPlaudClient({ fetchImpl: fakeFetch([]), tokenPath: join(tmpdir(), 'nope', 'tokens-mcp.json') });
+  await withApp(missing, async (base) => {
+    const res = await fetch(`${base}/api/plaud/status`);
+    assert.deepEqual(await res.json(), { connected: false });
+  });
+
+  const { dir, path } = await tempTokenFile(FRESH);
+  try {
+    const connected = createPlaudClient({ fetchImpl: fakeFetch([]), tokenPath: path });
+    await withApp(connected, async (base) => {
+      const res = await fetch(`${base}/api/plaud/status`);
+      assert.deepEqual(await res.json(), { connected: true });
+    });
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('GET /api/plaud/recordings returns trimmed rows with a Bearer header', async () => {
+  const { dir, path } = await tempTokenFile(FRESH);
+  try {
+    const ff = fakeFetch([[LIST_URL, [jsonRes(LISTING)]]]);
+    const client = createPlaudClient({ fetchImpl: ff, tokenPath: path });
+    await withApp(client, async (base) => {
+      const res = await fetch(`${base}/api/plaud/recordings`);
+      assert.equal(res.status, 200);
+      assert.deepEqual(await res.json(), {
+        recordings: [{ id: 'f1', name: 'סבב בוקר', startAt: '2026-07-15T06:57:25', durationMs: 8000 }],
+      });
+      assert.equal(ff.calls[0].opts.headers.Authorization, 'Bearer AT');
+    });
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('missing token file → 503 plaud_not_connected envelope', async () => {
+  const client = createPlaudClient({ fetchImpl: fakeFetch([]), tokenPath: join(tmpdir(), 'nope', 'tokens-mcp.json') });
+  await withApp(client, async (base) => {
+    const res = await fetch(`${base}/api/plaud/recordings`);
+    assert.equal(res.status, 503);
+    const body = await res.json();
+    assert.equal(body.error.code, 'plaud_not_connected');
+    assert.ok(body.error.message);
+  });
+});
+
+test('stale token → refresh first, rotated token persisted, then data', async () => {
+  const now = 2_000_000_000_000;
+  const { dir, path } = await tempTokenFile({ ...FRESH, expires_at: now - 1 });
+  try {
+    const ff = fakeFetch([
+      [REFRESH, [jsonRes({ access_token: 'AT2', refresh_token: 'RT2', expires_in: 3600 })]],
+      [LIST_URL, [jsonRes(LISTING)]],
+    ]);
+    const client = createPlaudClient({ fetchImpl: ff, tokenPath: path, now: () => now });
+    await withApp(client, async (base) => {
+      const res = await fetch(`${base}/api/plaud/recordings`);
+      assert.equal(res.status, 200);
+    });
+    // Refresh happened first, as form-urlencoded refresh_token.
+    assert.ok(ff.calls[0].url.startsWith(REFRESH));
+    assert.equal(String(ff.calls[0].opts.body), 'refresh_token=RT');
+    // Data call used the rotated token.
+    assert.equal(ff.calls[1].opts.headers.Authorization, 'Bearer AT2');
+    // Rotated set persisted in the MCP's shape.
+    const persisted = JSON.parse(await readFile(path, 'utf8'));
+    assert.equal(persisted.access_token, 'AT2');
+    assert.equal(persisted.refresh_token, 'RT2');
+    assert.equal(persisted.expires_at, now + 3_600_000);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('401 from Plaud → single refresh + retry → success', async () => {
+  const { dir, path } = await tempTokenFile(FRESH);
+  try {
+    const ff = fakeFetch([
+      [REFRESH, [jsonRes({ access_token: 'AT2' })]],
+      [LIST_URL, [jsonRes({}, 401), jsonRes(LISTING)]],
+    ]);
+    const client = createPlaudClient({ fetchImpl: ff, tokenPath: path });
+    await withApp(client, async (base) => {
+      const res = await fetch(`${base}/api/plaud/recordings`);
+      assert.equal(res.status, 200);
+    });
+    assert.equal(ff.calls.length, 3); // list(401) → refresh → list(200)
+    assert.equal(ff.calls[2].opts.headers.Authorization, 'Bearer AT2');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('recording without a transcript → 502 plaud_no_transcript', async () => {
+  const { dir, path } = await tempTokenFile(FRESH);
+  try {
+    const detail = [{ data_type: 'mark_memo', data_content: '' }];
+    const ff = fakeFetch([[`${API}/open/third-party/files/f9`, [jsonRes(detail)]]]);
+    const client = createPlaudClient({ fetchImpl: ff, tokenPath: path });
+    await withApp(client, async (base) => {
+      const res = await fetch(`${base}/api/plaud/recordings/f9/transcript`);
+      assert.equal(res.status, 502);
+      assert.equal((await res.json()).error.code, 'plaud_no_transcript');
+    });
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('transcript happy path returns the joined Hebrew string', async () => {
+  const { dir, path } = await tempTokenFile(FRESH);
+  try {
+    const ff = fakeFetch([[`${API}/open/third-party/files/f1`, [jsonRes(FILE_DETAIL)]]]);
+    const client = createPlaudClient({ fetchImpl: ff, tokenPath: path });
+    await withApp(client, async (base) => {
+      const res = await fetch(`${base}/api/plaud/recordings/f1/transcript`);
+      assert.equal(res.status, 200);
+      assert.deepEqual(await res.json(), { transcript: 'שלום, אני שמואל.\nהחולה יציב הבוקר.' });
+    });
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
