@@ -269,5 +269,3 @@
 .mode-live { background: #dcfce7 !important; color: #166534 !important; }
 .mode-err  { background: #fee2e2 !important; color: #991b1b !important; }
 
-/* waveform canvas baseline */
-#waveform { width: 100%; }

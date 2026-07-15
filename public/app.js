@@ -557,6 +557,7 @@ function closePlaudPicker() {
 function plaudErrorMessage(e) {
   if (e.code === 'plaud_not_connected') return t('plaudNotConnectedHint');
   if (e.code === 'plaud_no_transcript') return t('plaudNoTranscript');
+  if (e.code === 'NETWORK') return e.message; // api() already localized it
   return t('plaudPullFailed', { msg: e.message });
 }
 
@@ -568,6 +569,8 @@ function formatDurationMs(ms) {
 
 async function openPlaudPicker() {
   clearCaptureError();
+  const btn = $('#btn-plaud');
+  btn.disabled = true; // guard against a double-click racing two list fetches
   const body = $('#plaud-picker-body');
   $('#plaud-picker').classList.remove('hidden');
   body.innerHTML = `<div class="text-sm text-slate-400">${esc(t('plaudLoading'))}</div>`;
@@ -577,6 +580,8 @@ async function openPlaudPicker() {
   } catch (e) {
     closePlaudPicker();
     showCaptureError(plaudErrorMessage(e));
+  } finally {
+    btn.disabled = !state.plaudConnected;
   }
 }
 
@@ -593,16 +598,18 @@ function renderPlaudRecordings(recordings) {
     const when = r.startAt
       ? new Date(r.startAt).toLocaleString(currentLang === 'he' ? 'he-IL' : 'en-GB', { dateStyle: 'short', timeStyle: 'short' })
       : '';
+    const meta = [when, formatDurationMs(r.durationMs)].filter(Boolean).join(' · ');
     // Recording names are user data — rendered verbatim, dir="auto".
     row.innerHTML = `<span class="font-medium text-slate-700 truncate" dir="auto">${esc(r.name)}</span>
-      <span class="shrink-0 text-xs tabular-nums text-slate-500" dir="ltr">${esc(when)} · ${esc(formatDurationMs(r.durationMs))}</span>`;
-    row.addEventListener('click', () => pullPlaudTranscript(r.id, row));
+      <span class="shrink-0 text-xs tabular-nums text-slate-500" dir="ltr">${esc(meta)}</span>`;
+    row.addEventListener('click', () => pullPlaudTranscript(r.id));
     body.appendChild(row);
   }
 }
 
-async function pullPlaudTranscript(id, row) {
-  row.disabled = true;
+async function pullPlaudTranscript(id) {
+  const rows = [...document.querySelectorAll('#plaud-picker-body button')];
+  rows.forEach((b) => { b.disabled = true; }); // one pull at a time
   try {
     const data = await api(`/api/plaud/recordings/${encodeURIComponent(id)}/transcript`);
     setTranscript(data.transcript || '');
@@ -613,7 +620,7 @@ async function pullPlaudTranscript(id, row) {
     // Transcript pane deliberately untouched on failure (spec: no partial state).
     showCaptureError(plaudErrorMessage(e));
   } finally {
-    row.disabled = false;
+    rows.forEach((b) => { b.disabled = false; });
   }
 }
 
