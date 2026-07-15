@@ -7,7 +7,7 @@
 //   - Reseed the mock EMR working state from patient.seed.json on startup so
 //     every `npm start` begins from a clean, identical patient (spec §9).
 //   - Resolve and print the operating MODE — MOCK (deterministic, no network) vs
-//     LIVE (Whisper + Claude) — using the same rule the lib layer uses:
+//     LIVE (Claude structure/judge) — using the same rule the lib layer uses:
 //       MOCK when DEMO_MODE=mock, or when an API key is missing.
 //   - Serve the static frontend from /public (no build step).
 //   - Mount all API routes under /api.
@@ -27,6 +27,7 @@ import judgeRoute from './routes/judge.js';
 import commitRoute from './routes/commit.js';
 import scriptedRoundRoute from './routes/scriptedRound.js';
 import emrRoute from './routes/emr.js';
+import createPlaudRouter from './routes/plaud.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const thisFile = fileURLToPath(import.meta.url);
@@ -34,14 +35,14 @@ const publicDir = join(__dirname, '..', 'public');
 
 /**
  * Resolve the operating mode from the environment.
- * MOCK when DEMO_MODE=mock (forced) or when either API key is absent (spec §2/§9).
+ * MOCK when DEMO_MODE=mock (forced) or when ANTHROPIC_API_KEY is absent.
+ * Structure/judge are the only LLM steps the UI drives (the Plaud pull is
+ * plain REST; mic/Whisper was removed from the UI), so Claude alone decides.
  * @returns {'MOCK'|'LIVE'}
  */
 export function resolveMode() {
   if ((process.env.DEMO_MODE || '').toLowerCase() === 'mock') return 'MOCK';
-  const hasAnthropic = Boolean((process.env.ANTHROPIC_API_KEY || '').trim());
-  const hasOpenAI = Boolean((process.env.OPENAI_API_KEY || '').trim());
-  return hasAnthropic && hasOpenAI ? 'LIVE' : 'MOCK';
+  return Boolean((process.env.ANTHROPIC_API_KEY || '').trim()) ? 'LIVE' : 'MOCK';
 }
 
 /** Build (but do not start) the Express app. */
@@ -62,6 +63,7 @@ export function createApp() {
   app.use('/api', commitRoute);
   app.use('/api', scriptedRoundRoute);
   app.use('/api', emrRoute);
+  app.use('/api', createPlaudRouter());
 
   // Common error envelope for unexpected/uncaught errors (spec §5/§8).
   // eslint-disable-next-line no-unused-vars
@@ -97,7 +99,7 @@ if (process.argv[1] === thisFile) {
 
   app.listen(port, () => {
     console.log(`\n  Hebrew Rounds → Mock Chameleon EMR POC`);
-    console.log(`  Mode: ${mode}${mode === 'MOCK' ? '  (deterministic, no network — scripted round)' : '  (live Whisper + Claude)'}`);
+    console.log(`  Mode: ${mode}${mode === 'MOCK' ? '  (deterministic, no network — scripted round)' : '  (live Claude structure + judge)'}`);
     console.log(`  URL:  http://localhost:${port}\n`);
   });
 }
