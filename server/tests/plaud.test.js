@@ -54,6 +54,18 @@ test('parseTranscriptPayload returns null on non-array input', () => {
   assert.equal(parseTranscriptPayload({}), null);
 });
 
+// The live GET /open/third-party/files/{id} endpoint returns a file OBJECT
+// with the data items under `source_list` (the Plaud MCP unwraps that field
+// in its get_transcript tool — verified against @plaud-ai/mcp v0.3.5 and a
+// real API response on 2026-07-15).
+test('parseTranscriptPayload unwraps the file-object source_list shape', () => {
+  const fileObject = { id: 'f1', name: 'סבב בוקר', source_list: FILE_DETAIL };
+  const segments = parseTranscriptPayload(fileObject);
+  assert.equal(segments.length, 2);
+  assert.equal(segments[0].content, 'שלום, אני שמואל.');
+  assert.equal(parseTranscriptPayload({ id: 'f1', source_list: [] }), null);
+});
+
 test('joinSegments joins content strings with newlines, skipping empties', () => {
   const segments = parseTranscriptPayload(FILE_DETAIL);
   assert.equal(joinSegments(segments), 'שלום, אני שמואל.\nהחולה יציב הבוקר.');

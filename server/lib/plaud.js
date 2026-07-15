@@ -48,14 +48,20 @@ export function isTokenStale(tokenSet, nowMs) {
 }
 
 /**
- * Extract transcript segments from a GET /files/{id} payload: the item with
- * data_type "transaction" carries a JSON-encoded segment array in
- * data_content. Returns the parsed segments, or null when the recording has
- * not been transcribed (or the payload is malformed).
+ * Extract transcript segments from a GET /files/{id} payload. The live
+ * endpoint returns a file OBJECT whose data items sit under `source_list`
+ * (the Plaud MCP's get_transcript unwraps that field the same way); a bare
+ * item array is also accepted. The item with data_type "transaction" carries
+ * a JSON-encoded segment array in data_content. Returns the parsed segments,
+ * or null when the recording has not been transcribed (or the payload is
+ * malformed).
  */
 export function parseTranscriptPayload(fileDetail) {
-  if (!Array.isArray(fileDetail)) return null;
-  const item = fileDetail.find((d) => d && d.data_type === 'transaction');
+  const items = Array.isArray(fileDetail)
+    ? fileDetail
+    : (fileDetail && Array.isArray(fileDetail.source_list) ? fileDetail.source_list : null);
+  if (!items) return null;
+  const item = items.find((d) => d && d.data_type === 'transaction');
   if (!item || typeof item.data_content !== 'string' || !item.data_content) return null;
   let segments;
   try {
