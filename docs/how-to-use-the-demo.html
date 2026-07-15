@@ -99,7 +99,7 @@
     <p>In a terminal, from the project folder <code>C:\Practicum\Practicum_2</code>:</p>
     <p><code>npm start</code></p>
     <p>Then open <a href="http://localhost:3000">http://localhost:3000</a> in Chrome. Every <code>npm start</code> reseeds the patient record, so each rehearsal begins from the same clean slate.</p>
-    <div class="callout"><span class="t">No keys needed.</span> Leave <code>.env</code> keys blank and the whole demo runs <strong>offline</strong> on canned, deterministic data — the most reliable way to present in class. (Add API keys only if you want the live microphone + live AI path.)</div>
+    <div class="callout"><span class="t">No keys needed.</span> Leave <code>.env</code> keys blank and the whole demo runs <strong>offline</strong> on canned, deterministic data — the most reliable way to present in class. (Add an <code>ANTHROPIC_API_KEY</code> — plus a connected Plaud account — only if you want the live Plaud + live AI path; no OpenAI/Whisper key is needed.)</div>
   </div>
 
   <h2 id="mode">2. Check the mode badge (top-right)</h2>
@@ -107,15 +107,15 @@
   <table>
     <tr><th>Badge</th><th>Meaning</th></tr>
     <tr><td><span class="he">● מצב MOCK (לא מקוון)</span></td><td><strong>Mock / offline.</strong> Uses the scripted Hebrew round and canned AI output. Deterministic — recommended for the demo.</td></tr>
-    <tr><td><span class="he">● מצב LIVE (Whisper + Claude)</span></td><td><strong>Live.</strong> Real OpenAI Whisper transcription + real Claude structuring/judging. Needs API keys.</td></tr>
+    <tr><td><span class="he">● מצב LIVE (Claude)</span></td><td><strong>Live.</strong> Pulls a real round transcript from your Plaud account + real Claude structuring/judging. Needs <code>ANTHROPIC_API_KEY</code> and a connected Plaud account.</td></tr>
     <tr><td><span class="he">● שגיאת חיבור</span></td><td>Connection error — the server isn't reachable. Make sure <code>npm start</code> is running.</td></tr>
   </table>
 
   <h2 id="layout">3. The screen layout</h2>
-  <p>The page is one screen with three areas, following the numbered stepper at the top (<span class="he ghost">1 · הקלטה / תמלול</span> → <span class="he ghost">2 · מבנה ובדיקה</span> → <span class="he ghost">3 · רשומת כמליאון</span>):</p>
+  <p>The page is one screen with three areas, following the numbered stepper at the top (<span class="he ghost">1 · משיכה / תמלול</span> → <span class="he ghost">2 · מבנה ובדיקה</span> → <span class="he ghost">3 · רשומת כמליאון</span>):</p>
   <ul>
     <li><strong>Patient header</strong> — the post-op patient: David Cohen / <span class="he ghost">דוד כהן</span>, age 58, day 2 after a small-bowel resection.</li>
-    <li><strong>Capture (left, modern)</strong> — <span class="he ghost">לכידת הסבב</span> — record or load the round and see the Hebrew transcript.</li>
+    <li><strong>Capture (left, modern)</strong> — <span class="he ghost">לכידת הסבב</span> — pull or load the round and see the Hebrew transcript.</li>
     <li><strong>Review &amp; approve (right, modern)</strong> — <span class="he ghost">סקירה ואישור</span> — the AI-structured note, field by field, with the safety checks.</li>
     <li><strong>Chameleon EMR (bottom, deliberately legacy 90s look)</strong> — the mock hospital record the approved note lands in, plus an audit log. The retro styling makes the point: <em>we plug into the systems hospitals already use.</em></li>
   </ul>
@@ -127,7 +127,7 @@
     <div class="body">
       <h3>Load the round</h3>
       <p>In the Capture panel, click <span class="he">השתמש בסבב מתוסרט</span> <em>(Use scripted round)</em>. The Hebrew round transcript appears in the transcript box on the right of that panel.</p>
-      <p><strong>Live alternative:</strong> click <span class="he">הקלט סבב</span> <em>(Record round)</em>, allow the microphone, speak the round in Hebrew, then click <span class="he">עצור הקלטה</span> <em>(Stop recording)</em>. (Only works in LIVE mode with a key; the scripted button is the safe choice on stage.)</p>
+      <p><strong>Live alternative:</strong> record the round in Hebrew on the Plaud device, let the Plaud app sync and transcribe it, then click <span class="he">משוך מ-Plaud</span> <em>(Pull from Plaud)</em> and pick the recording from the list. (Only works in LIVE mode with a connected Plaud account; the scripted button is the safe choice on stage.)</p>
     </div>
   </div>
 
@@ -209,9 +209,9 @@
     <tr><th>Situation</th><th>Do this</th></tr>
     <tr><td>Want a clean record for the next run</td><td>Stop and re-run <code>npm start</code> (auto-reseeds), or run <code>npm run reset</code>.</td></tr>
     <tr><td>Badge shows <span class="he ghost">● שגיאת חיבור</span></td><td>The server stopped. Re-run <code>npm start</code> and refresh the page.</td></tr>
-    <tr><td>Microphone button does nothing / errors</td><td>Mic + live transcription only work in LIVE mode (keys set). For the demo, use <span class="he ghost">השתמש בסבב מתוסרט</span> (scripted round).</td></tr>
+    <tr><td><span class="he ghost">משוך מ-Plaud</span> (Pull from Plaud) is disabled / errors</td><td>Plaud pulling only works in LIVE mode with a connected Plaud account — run the Plaud MCP login on this machine, then refresh. For the demo, use <span class="he ghost">השתמש בסבב מתוסרט</span> (scripted round).</td></tr>
     <tr><td>Hebrew looks reversed/odd</td><td>Use Chrome; the page is built for right-to-left and renders best there.</td></tr>
-    <tr><td>Want to prove it's solid</td><td>Run <code>npm test</code> — 14 automated checks of the guardrails, commit rules, and grounding invariant.</td></tr>
+    <tr><td>Want to prove it's solid</td><td>Run <code>npm test</code> — 31 automated checks of the guardrails, commit rules, grounding invariant, and Plaud pull.</td></tr>
   </table>
 
   <footer>

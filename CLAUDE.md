@@ -19,7 +19,21 @@ No build step, no bundler, no linter. Frontend is vanilla ES modules served stat
 
 ## MOCK vs LIVE mode
 
-The app runs fully offline with **blank API keys** (the classroom-demo default). Mode is resolved per capability in `server/lib/llm.js`: `DEMO_MODE=mock` forces mock; otherwise transcribe is live only with `OPENAI_API_KEY` (Whisper), and structure/judge are live only with `ANTHROPIC_API_KEY` (Claude). Mock responses are canned in `server/data/mock-llm.json` and keyed to the scripted round — they are **not** generic fixtures (see grounding invariant below).
+The app runs fully offline with **blank API keys** (the classroom-demo default). Mode is resolved per capability in `server/lib/llm.js`: `DEMO_MODE=mock` forces mock; otherwise transcribe is live only with `OPENAI_API_KEY` (Whisper), and structure/judge are live only with `ANTHROPIC_API_KEY` (Claude) (the transcribe capability still resolves this way in `lib/llm.js`, but the UI no longer calls it — see Plaud capability below). Mock responses are canned in `server/data/mock-llm.json` and keyed to the scripted round — they are **not** generic fixtures (see grounding invariant below).
+
+## Plaud capability (live-only)
+
+`server/lib/plaud.js` + `routes/plaud.js` pull a round's Hebrew transcript from
+the presenter's Plaud account (`GET /api/plaud/status | /recordings |
+/recordings/:id/transcript`). Auth reuses the OAuth token the **Plaud MCP
+login** cached at `~/.plaud/tokens-mcp.json` (refresh-and-persist on expiry/401);
+there is no in-app OAuth flow — "not connected" means run the MCP login again.
+The token file location/shape is an internal detail of `@plaud-ai/mcp`
+(verified v0.3.5) — if it moves, update `DEFAULT_TOKEN_PATH` in `lib/plaud.js`.
+Plaud has no mock mode: offline demos use the scripted round. The browser-mic
+recording path was removed from the UI (Whisper transcribe code remains
+server-side but nothing calls it), so LIVE mode is resolved from
+`ANTHROPIC_API_KEY` alone (`resolveMode()` in `server/index.js`).
 
 ## Architecture — the safety pipeline
 
