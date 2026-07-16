@@ -20,6 +20,22 @@ const playable = (seg) => seg && seg.startMs != null && seg.endMs != null;
 const OVERLAP_THRESHOLD = 0.3;
 
 /**
+ * Interpolate a character range within a segment's normalized content into a
+ * time window. Plaud segments recordings by SPEAKER TURN — a near-monologue
+ * round yields 30+ second segments, so playing "the segment" would start most
+ * quotes at the beginning of the recording. Linear chars→time interpolation
+ * is approximate but lands playback at the sentence, and the caller pads ±1s.
+ */
+function interpolateWindow(seg, contentLength, fromChar, toChar) {
+  const L = Math.max(1, contentLength);
+  const dur = seg.endMs - seg.startMs;
+  return {
+    startMs: seg.startMs + Math.round(dur * Math.min(1, Math.max(0, fromChar / L))),
+    endMs: seg.startMs + Math.round(dur * Math.min(1, Math.max(0, toChar / L))),
+  };
+}
+
+/**
  * Find the playback window for a field's sourceSpan.
  *
  * Tiers:
@@ -40,16 +56,28 @@ export function matchSpanToSegments(segments, span, extraText = '') {
 
   if (nspan) {
     for (const seg of list) {
-      if (playable(seg) && normalizeForMatch(seg.content).includes(nspan)) {
-        return { startMs: seg.startMs, endMs: seg.endMs, method: 'exact' };
+      if (!playable(seg)) continue;
+      const ncontent = normalizeForMatch(seg.content);
+      const idx = ncontent.indexOf(nspan);
+      if (idx !== -1) {
+        const { startMs, endMs } = interpolateWindow(seg, ncontent.length, idx, idx + nspan.length);
+        return { startMs, endMs, method: 'exact' };
       }
     }
     for (let i = 0; i < list.length - 1; i++) {
       const a = list[i];
       const b = list[i + 1];
       if (!playable(a) || !playable(b)) continue;
-      if (normalizeForMatch(`${a.content} ${b.content}`).includes(nspan)) {
-        return { startMs: a.startMs, endMs: b.endMs, method: 'pair' };
+      const na = normalizeForMatch(a.content);
+      const nb = normalizeForMatch(b.content);
+      const idx = `${na} ${nb}`.indexOf(nspan);
+      if (idx !== -1) {
+        // Start interpolated within a; end interpolated within b (the span
+        // crosses the join, so its tail lands (idx+len − |a|−1) chars into b).
+        const { startMs } = interpolateWindow(a, na.length, idx, idx);
+        const tailInB = idx + nspan.length - (na.length + 1);
+        const { endMs } = interpolateWindow(b, nb.length, tailInB, tailInB);
+        return { startMs, endMs, method: 'pair' };
       }
     }
   }
@@ -66,7 +94,21 @@ export function matchSpanToSegments(segments, span, extraText = '') {
     const score = hits / want.size;
     if (score > bestScore) { bestScore = score; best = seg; } // ties → earliest
   }
-  return bestScore >= OVERLAP_THRESHOLD
-    ? { startMs: best.startMs, endMs: best.endMs, method: 'overlap' }
-    : null;
+  if (bestScore < OVERLAP_THRESHOLD) return null;
+  // Window around the matched tokens' positions inside the best segment —
+  // not the whole (possibly 30s+) segment.
+  const ncontent = normalizeForMatch(best.content);
+  let first = Infinity;
+  let last = -1;
+  for (const tk of want) {
+    const i = ncontent.indexOf(tk);
+    if (i !== -1) {
+      first = Math.min(first, i);
+      last = Math.max(last, i + tk.length);
+    }
+  }
+  const { startMs, endMs } = last > -1
+    ? interpolateWindow(best, ncontent.length, first, last)
+    : { startMs: best.startMs, endMs: best.endMs };
+  return { startMs, endMs, method: 'overlap' };
 }
