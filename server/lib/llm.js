@@ -127,7 +127,7 @@ const STRUCTURE_SYSTEM_PROMPT = `You are a clinical scribe that converts a verba
 ABSOLUTE RULES — these protect patient safety:
 1. NEVER infer, normalize, assume, or invent any clinical fact that is not EXPLICITLY stated in the transcript. If a field was not spoken, OMIT it entirely (do not output a record for it).
 2. For every field you DO output, provide:
-   - "value": the clinical content, in Hebrew, faithful to what was said.
+   - "value": the clinical content, in Hebrew, written in professional EMR register: third person only (never first/second person — "המטופל מדווח על כאב", not "יש לי כאב"), accepted clinical terminology instead of colloquial phrasing, concise chart style (no conversational filler, greetings, or hedging). Rephrase the WORDING into clinical language, but the FACTS must remain exactly what was said — no added, dropped, or normalized clinical content (rule 1 still applies to facts).
    - "sourceSpan": an EXACT, VERBATIM substring copied character-for-character from the transcript that supports the value. It MUST appear literally in the transcript. Do NOT paraphrase, translate, summarize, or reword the sourceSpan. If you cannot find a verbatim supporting span, OMIT the field.
    - "confidence": a number from 0 to 1 reflecting how clearly the transcript supports the value.
 3. Do NOT add negative findings (e.g. "no fever", "אין חום") unless that exact negation was spoken. Absence of a statement is NOT evidence of a negative finding.
@@ -152,6 +152,8 @@ For EACH field in the draft note, return a verdict:
 Also provide:
 - "reason": a short Hebrew explanation of your verdict.
 - "highRisk": true if the field is clinically dangerous if wrong — medications/doses, imaging, or procedures/surgery — otherwise false.
+
+Note: values are deliberately written in clinical EMR register (third person, medical terminology), so their WORDING will differ from the spoken transcript — that alone is not ungrounded. Judge whether the FACTS in the value are supported; flag any fact that was added, changed, or contradicted by the rephrasing.
 
 Be skeptical. If a sourceSpan does not literally appear in the transcript, the field is ungrounded. Output ONLY structured data conforming to the provided schema, one verdict per field id given to you.`;
 
