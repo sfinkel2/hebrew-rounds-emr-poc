@@ -250,6 +250,17 @@
     </footer>
   </div>
 
+  <!-- Shared audio player bar (Plaud recordings only; hidden for scripted rounds).
+       dir="ltr": native media controls don't mirror; the recording name is
+       dir="auto" so Hebrew titles still render RTL inside the LTR bar. -->
+  <div id="audio-bar" dir="ltr"
+       class="hidden fixed bottom-3 inset-x-0 z-40 mx-auto w-[min(40rem,calc(100%-1.5rem))] rounded-xl bg-slate-900/95 text-white shadow-lg px-4 py-2 items-center gap-3">
+    <span class="text-[11px] uppercase tracking-wide text-slate-400 shrink-0" data-i18n="audioBarLabel">Recording</span>
+    <span id="audio-bar-name" class="text-xs font-medium truncate" dir="auto"></span>
+    <audio id="audio-el" controls preload="metadata" class="h-8 flex-1 min-w-0"></audio>
+    <button id="audio-bar-close" class="text-slate-400 hover:text-white text-sm">✕</button>
+  </div>
+
   <script src="./app.js" type="module"></script>
 </body>
 </html>

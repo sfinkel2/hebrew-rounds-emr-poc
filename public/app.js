@@ -13,7 +13,7 @@
 //   GET  /api/scripted-round      -> { transcript, audioUrl }
 //   GET  /api/plaud/status         -> { connected }
 //   GET  /api/plaud/recordings     -> { recordings }
-//   GET  /api/plaud/recordings/:id/transcript -> { transcript }
+//   GET  /api/plaud/recordings/:id/transcript -> { transcript, segments, audioUrl }
 //   POST /api/structure  { transcript }    -> { fields: FieldRecord[] }
 //   POST /api/judge      { transcript, fields } -> { fields: FieldRecord[] }
 //   POST /api/commit     { patientId, fields }  -> { emrState, auditEntries }
@@ -27,6 +27,8 @@
 // ============================================================================
 
 'use strict';
+
+import { matchSpanToSegments } from './segmentMatch.js';
 
 // ---------------------------------------------------------------------------
 // Field catalog mirror (labels + group order). fieldIds and Hebrew labels match
@@ -104,6 +106,11 @@ const STRINGS = {
     plaudNotConnectedHint: 'Plaud is not connected. Run the Plaud MCP login on this machine first.',
     plaudNoTranscript: 'This recording has no transcript yet. Transcribe it in the Plaud app, then try again.',
     plaudPullFailed: 'Pulling from Plaud failed: {msg}',
+    listenTitle: 'Play this quote from the recording',
+    listenTitleApprox: 'Quote not found verbatim — play the closest matching part',
+    audioBarLabel: 'Recording',
+    audioBarClose: 'Hide player',
+    audioLoadFailed: 'Could not play the recording — the audio link may have expired. Try again or pull the recording again.',
     btnScripted: 'Use scripted round',
     transcriptLabel: 'Transcript (Hebrew)',
     transcriptPlaceholder: 'The transcript will appear here after pulling from Plaud or choosing the scripted round…',
@@ -173,6 +180,11 @@ const STRINGS = {
     plaudNotConnectedHint: 'Plaud אינו מחובר. יש להריץ תחילה התחברות Plaud MCP במחשב זה.',
     plaudNoTranscript: 'להקלטה זו אין עדיין תמלול. יש לתמלל אותה באפליקציית Plaud ולנסות שוב.',
     plaudPullFailed: 'המשיכה מ-Plaud נכשלה: {msg}',
+    listenTitle: 'השמע את הציטוט מההקלטה',
+    listenTitleApprox: 'הציטוט לא נמצא מילה במילה — השמע את הקטע הקרוב ביותר',
+    audioBarLabel: 'הקלטה',
+    audioBarClose: 'הסתר נגן',
+    audioLoadFailed: 'לא ניתן להשמיע את ההקלטה — ייתכן שקישור השמע פג. נסה שוב או משוך את ההקלטה מחדש.',
     btnScripted: 'השתמש בסבב מתוסרט',
     transcriptLabel: 'תמלול (עברית)',
     transcriptPlaceholder: 'התמלול יופיע כאן לאחר משיכה מ-Plaud או בחירת הסבב המתוסרט…',
@@ -257,6 +269,8 @@ function applyLanguage(lang) {
   const plaudBtn = $('#btn-plaud');
   if (plaudBtn) plaudBtn.title = state.plaudConnected ? '' : t('plaudNotConnectedHint');
   closePlaudPicker(); // row timestamps are locale-formatted; reopen re-renders them
+  const barClose = $('#audio-bar-close');
+  if (barClose) barClose.title = t('audioBarClose');
   $('#btn-scripted').textContent = t('btnScripted');
   $('#btn-structure').textContent = t('btnStructure');
   $('#btn-commit').textContent = t('btnCommit');
@@ -282,6 +296,9 @@ const state = {
   fields: [],             // FieldRecord[] currently under review
   committedFieldIds: [],  // fieldIds committed in the most recent commit (for flash)
   plaudConnected: false,
+  // Audio playback for the pulled Plaud recording (empty for scripted rounds).
+  audio: { url: null, recordingId: null, recordingName: '', segments: [] },
+  playingFieldId: null,   // fieldId whose matched window is currently playing
 };
 
 // ---------------------------------------------------------------------------
@@ -528,6 +545,7 @@ async function useScriptedRound() {
   try {
     const data = await api('/api/scripted-round');
     setTranscript(data.transcript || '');
+    clearRecordingAudio(); // scripted round has no audio asset — no listen UI
     setStep('capture');
   } catch (e) {
     showCaptureError(t('errScriptedLoad', { msg: e.message }), false);
@@ -602,17 +620,23 @@ function renderPlaudRecordings(recordings) {
     // Recording names are user data — rendered verbatim, dir="auto".
     row.innerHTML = `<span class="font-medium text-slate-700 truncate" dir="auto">${esc(r.name)}</span>
       <span class="shrink-0 text-xs tabular-nums text-slate-500" dir="ltr">${esc(meta)}</span>`;
-    row.addEventListener('click', () => pullPlaudTranscript(r.id));
+    row.addEventListener('click', () => pullPlaudTranscript(r.id, r.name));
     body.appendChild(row);
   }
 }
 
-async function pullPlaudTranscript(id) {
+async function pullPlaudTranscript(id, name) {
   const rows = [...document.querySelectorAll('#plaud-picker-body button')];
   rows.forEach((b) => { b.disabled = true; }); // one pull at a time
   try {
     const data = await api(`/api/plaud/recordings/${encodeURIComponent(id)}/transcript`);
     setTranscript(data.transcript || '');
+    setRecordingAudio({
+      recordingId: id,
+      recordingName: name || '',
+      audioUrl: data.audioUrl || null,
+      segments: Array.isArray(data.segments) ? data.segments : [],
+    });
     closePlaudPicker();
     clearCaptureError();
     setStep('capture');
@@ -622,6 +646,128 @@ async function pullPlaudTranscript(id) {
   } finally {
     rows.forEach((b) => { b.disabled = false; });
   }
+}
+
+// --- Audio playback (Plaud recordings only) -------------------------------
+// One shared <audio> element in the fixed #audio-bar. A field's 🔊 button
+// plays its matched segment window [start−1s, end+1s]; the native controls
+// remain available for full-file scrubbing. Scripted rounds have no audio.
+const AUDIO_PAD_MS = 1000;
+let windowEndSec = Infinity;   // stop point for the current field window
+let programmaticSeek = false;  // distinguishes our seeks from user scrubbing
+let audioUrlRetried = false;   // one presigned-URL refresh per failure episode
+
+function hasAudio() {
+  return Boolean(state.audio.url && state.audio.segments.length);
+}
+
+function showAudioBar(show) {
+  const bar = $('#audio-bar');
+  bar.classList.toggle('hidden', !show);
+  bar.classList.toggle('flex', show);
+}
+
+function setRecordingAudio({ recordingId, recordingName, audioUrl, segments }) {
+  stopFieldWindow(true);
+  state.audio = { url: audioUrl, recordingId, recordingName, segments };
+  const a = $('#audio-el');
+  if (audioUrl) a.src = audioUrl; else { a.removeAttribute('src'); a.load(); }
+  $('#audio-bar-name').textContent = recordingName;
+  showAudioBar(Boolean(audioUrl));
+}
+
+function clearRecordingAudio() {
+  const a = $('#audio-el');
+  a.pause();
+  a.removeAttribute('src');
+  a.load();
+  state.audio = { url: null, recordingId: null, recordingName: '', segments: [] };
+  stopFieldWindow(false);
+  showAudioBar(false);
+}
+
+function stopFieldWindow(pause) {
+  windowEndSec = Infinity;
+  state.playingFieldId = null;
+  if (pause) $('#audio-el').pause();
+  syncListenButtons();
+}
+
+function syncListenButtons() {
+  document.querySelectorAll('.listen-btn').forEach((b) => {
+    b.classList.toggle('is-playing', Boolean(state.playingFieldId) && b.dataset.fieldId === state.playingFieldId);
+  });
+}
+
+// Memoized per field: segments are immutable for the lifetime of a pull.
+function fieldAudioWindow(f) {
+  if (f._audioWindow === undefined) {
+    f._audioWindow = matchSpanToSegments(state.audio.segments, f.sourceSpan, f.value);
+  }
+  return f._audioWindow;
+}
+
+async function seekTo(a, sec) {
+  if (a.readyState < 1) { // metadata not loaded yet
+    await new Promise((resolve) => a.addEventListener('loadedmetadata', resolve, { once: true }));
+  }
+  programmaticSeek = true;
+  a.currentTime = sec;
+}
+
+async function toggleFieldAudio(f) {
+  if (state.playingFieldId === f.fieldId) { stopFieldWindow(true); return; } // same button = stop
+  const a = $('#audio-el');
+  const m = fieldAudioWindow(f);
+  state.playingFieldId = f.fieldId; // another field = switch
+  syncListenButtons();
+  try {
+    await seekTo(a, m ? Math.max(0, (m.startMs - AUDIO_PAD_MS) / 1000) : 0);
+    windowEndSec = m ? (m.endMs + AUDIO_PAD_MS) / 1000 : Infinity; // past-duration just ends naturally
+    await a.play();
+  } catch {
+    stopFieldWindow(false);
+  }
+}
+
+// Presigned URL is good for 24h; a session left open overnight will 403.
+// On the first media error refetch the SAME transcript endpoint for a fresh
+// URL and resume; take ONLY audioUrl from the response (never touch
+// state.transcript or fields mid-review).
+async function onAudioError() {
+  const a = $('#audio-el');
+  if (!state.audio.recordingId || audioUrlRetried) { showReviewError(t('audioLoadFailed')); return; }
+  audioUrlRetried = true;
+  const wasAt = a.currentTime;
+  const wasPlaying = Boolean(state.playingFieldId);
+  try {
+    const data = await api(`/api/plaud/recordings/${encodeURIComponent(state.audio.recordingId)}/transcript`);
+    if (!data.audioUrl) throw new Error('no url');
+    state.audio.url = data.audioUrl;
+    a.src = data.audioUrl;
+    await seekTo(a, wasAt);
+    if (wasPlaying) await a.play();
+  } catch {
+    showReviewError(t('audioLoadFailed'));
+  }
+}
+
+function initAudioBar() {
+  const a = $('#audio-el');
+  a.addEventListener('timeupdate', () => {
+    if (state.playingFieldId && a.currentTime >= windowEndSec) stopFieldWindow(true);
+  });
+  a.addEventListener('seeked', () => { // user scrub cancels the window, keeps playing
+    if (programmaticSeek) { programmaticSeek = false; return; }
+    windowEndSec = Infinity;
+    state.playingFieldId = null;
+    syncListenButtons();
+  });
+  a.addEventListener('ended', () => stopFieldWindow(false));
+  a.addEventListener('playing', () => { audioUrlRetried = false; });
+  a.addEventListener('error', onAudioError);
+  $('#audio-bar-close').addEventListener('click', () => { stopFieldWindow(true); showAudioBar(false); });
+  $('#audio-bar-close').title = t('audioBarClose');
 }
 
 // ===========================================================================
@@ -987,6 +1133,7 @@ async function init() {
     renderEmrView(null);
   }
 
+  initAudioBar();
   detectMode();
   initPlaudButton();
 }
