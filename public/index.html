@@ -257,7 +257,9 @@
        class="hidden fixed bottom-3 inset-x-0 z-40 mx-auto w-[min(40rem,calc(100%-1.5rem))] rounded-xl bg-slate-900/95 text-white shadow-lg px-4 py-2 items-center gap-3">
     <span class="text-[11px] uppercase tracking-wide text-slate-400 shrink-0" data-i18n="audioBarLabel">Recording</span>
     <span id="audio-bar-name" class="text-xs font-medium truncate" dir="auto"></span>
-    <audio id="audio-el" controls preload="metadata" class="h-8 flex-1 min-w-0"></audio>
+    <!-- preload=auto: buffer the MP3 at pull time so the first listen click
+         doesn't stall on an S3 range fetch mid-demo -->
+    <audio id="audio-el" controls preload="auto" class="h-8 flex-1 min-w-0"></audio>
     <button id="audio-bar-close" class="text-slate-400 hover:text-white text-sm">✕</button>
   </div>
 

@@ -757,12 +757,16 @@ function initAudioBar() {
   a.addEventListener('timeupdate', () => {
     if (state.playingFieldId && a.currentTime >= windowEndSec) stopFieldWindow(true);
   });
-  a.addEventListener('seeked', () => { // user scrub cancels the window, keeps playing
-    if (programmaticSeek) { programmaticSeek = false; return; }
+  // User scrub cancels the window but keeps playing. Cancel on 'seeking'
+  // (fires before any timeupdate at the new position) — cancelling on
+  // 'seeked' loses a race where a scrub past the window end pauses first.
+  a.addEventListener('seeking', () => {
+    if (programmaticSeek) return;
     windowEndSec = Infinity;
     state.playingFieldId = null;
     syncListenButtons();
   });
+  a.addEventListener('seeked', () => { programmaticSeek = false; });
   a.addEventListener('ended', () => stopFieldWindow(false));
   a.addEventListener('playing', () => { audioUrlRetried = false; });
   a.addEventListener('error', onAudioError);

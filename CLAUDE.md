@@ -35,6 +35,13 @@ recording path was removed from the UI (Whisper transcribe code remains
 server-side but nothing calls it), so LIVE mode is resolved from
 `ANTHROPIC_API_KEY` alone (`resolveMode()` in `server/index.js`).
 
+The transcript endpoint also returns timed `segments` and a 24h presigned
+`audioUrl` (the recording's MP3); the review pane's per-field 🔊 buttons map a
+field's sourceSpan to its segment via `public/segmentMatch.js` (pure, shared
+with node tests) and play that window through the `#audio-bar` player.
+`toClientSegments` in `lib/plaud.js` must keep its join-alignment invariant
+with `joinSegments` or span→segment matching silently degrades.
+
 ## Architecture — the safety pipeline
 
 The core design is a three-layer safety pipeline; each layer owns one sub-object of the `FieldRecord` and must not touch the others:
