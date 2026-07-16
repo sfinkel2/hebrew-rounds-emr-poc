@@ -933,6 +933,18 @@ function renderFieldCard(f) {
   const sq = el('div', 'source-quote mt-2' + (grounded ? '' : ' is-missing'));
   sq.setAttribute('dir', 'rtl');
   sq.innerHTML = `<span class="src-label" dir="${isHe ? 'rtl' : 'ltr'}">${esc(grounded ? t('srcFromTranscript') : t('srcMissing'))}</span>«${esc(f.sourceSpan || '—')}»`;
+  // listen button — plays the matched segment of the Plaud recording (absent
+  // for scripted rounds, which have no audio).
+  if (hasAudio()) {
+    const m = fieldAudioWindow(f);
+    const lb = el('button', 'listen-btn' + (state.playingFieldId === f.fieldId ? ' is-playing' : ''), '🔊');
+    lb.type = 'button';
+    lb.dataset.fieldId = f.fieldId;
+    lb.title = m && m.method !== 'overlap' ? t('listenTitle') : t('listenTitleApprox');
+    lb.setAttribute('aria-label', lb.title);
+    lb.addEventListener('click', () => toggleFieldAudio(f));
+    sq.appendChild(lb);
+  }
   card.appendChild(sq);
 
   // judge reason — the reason text is Hebrew data; only the prefix translates.
