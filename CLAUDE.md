@@ -65,8 +65,11 @@ Modules are deliberately deterministic for testability: `emrStore.applyCommit` t
 
 All LLM calls follow current Anthropic guidance for the Opus 4.x family — keep these when editing:
 
-- Model: `claude-opus-4-8` with a `claude-sonnet-4-6` fallback on 404/not-found.
+- Model: `claude-opus-4-8` with a `claude-sonnet-4-6` fallback on 404/not-found;
+  overridable via the `CLAUDE_MODEL` env var (e.g. `claude-haiku-4-5` for a
+  cheap classroom run).
 - `thinking: { type: "adaptive" }` — never `budget_tokens` (400s on Opus 4.7+).
+  Haiku 4.5 predates adaptive thinking, so `callClaude` omits the param there.
 - **No** `temperature`/`top_p`/`top_k` and **no** assistant-turn prefills (both 400 on Opus 4.7+).
 - Structured output via `output_config: { format: { type: "json_schema", schema } }` (the canonical param; top-level `output_format` is deprecated).
 - Malformed model output throws; routes convert to the shared `{ error: { code, message } }` envelope rather than returning a partial note.

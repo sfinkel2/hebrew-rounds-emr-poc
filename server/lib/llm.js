@@ -35,16 +35,18 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const dataDir = join(__dirname, '..', 'data');
 
 // Claude model id (current Anthropic guidance: default to Opus 4.8; use the
-// bare alias, never a date-suffixed variant). A current fallback is used if
-// this exact id is ever unavailable in the caller's account.
+// bare alias, never a date-suffixed variant). Overridable per demo via the
+// CLAUDE_MODEL env var (e.g. claude-haiku-4-5 for a cheaper/faster run).
+// A current fallback is used if the exact id is unavailable in the account.
 //
 // Opus 4.7+ API constraints honored throughout this module — keep them when
 // editing (each would return HTTP 400 if violated):
-//   - thinking must be { type: "adaptive" } (budget_tokens is removed)
+//   - thinking must be { type: "adaptive" } (budget_tokens is removed);
+//     Haiku 4.5 predates adaptive thinking, so the param is omitted there
 //   - no temperature / top_p / top_k sampling parameters
 //   - no assistant-turn prefills; structured output goes through
 //     output_config.format (json_schema) instead
-const CLAUDE_MODEL = 'claude-opus-4-8';
+const CLAUDE_MODEL = (process.env.CLAUDE_MODEL || '').trim() || 'claude-opus-4-8';
 const CLAUDE_MODEL_FALLBACK = 'claude-sonnet-4-6';
 const WHISPER_MODEL = 'whisper-1';
 
@@ -398,9 +400,12 @@ export async function judgeNote(transcript, fields) {
  * model id if the preferred one is unavailable (404/not_found).
  */
 async function callClaude(anthropic, { system, userText, schema }) {
+  // Haiku 4.5 rejects { type: "adaptive" } (it predates adaptive thinking);
+  // structure/judge are structured-output tasks and run fine without thinking.
+  const supportsAdaptiveThinking = !/haiku/i.test(CLAUDE_MODEL);
   const baseParams = {
     max_tokens: CLAUDE_MAX_TOKENS,
-    thinking: { type: 'adaptive' },
+    ...(supportsAdaptiveThinking ? { thinking: { type: 'adaptive' } } : {}),
     system,
     messages: [{ role: 'user', content: userText }],
     output_config: { format: { type: 'json_schema', schema } },
