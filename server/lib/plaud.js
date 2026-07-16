@@ -84,6 +84,24 @@ export function joinSegments(segments) {
     .join('\n');
 }
 
+/**
+ * Trim raw Plaud segments to the client playback shape. Uses the SAME
+ * keep/drop rule as joinSegments (non-empty string content) so that
+ * toClientSegments(raw).map(s => s.content).join('\n') === joinSegments(raw)
+ * — the client maps sourceSpans onto these segments relying on that identity.
+ * Times arrive in ms (start_time/end_time); non-numeric values become null
+ * (the client skips unplayable segments).
+ */
+export function toClientSegments(segments) {
+  return segments
+    .filter((s) => s && typeof s.content === 'string' && s.content)
+    .map((s) => ({
+      content: s.content,
+      startMs: Number.isFinite(s.start_time) ? s.start_time : null,
+      endMs: Number.isFinite(s.end_time) ? s.end_time : null,
+    }));
+}
+
 export function createPlaudClient({
   fetchImpl = fetch,
   tokenPath = DEFAULT_TOKEN_PATH,
@@ -231,7 +249,11 @@ export function createPlaudClient({
       }));
     },
 
-    /** One plain Hebrew transcript string for the round. */
+    /**
+     * The round's transcript plus what the review pane needs for playback:
+     * timed segments and the recording's presigned MP3 URL (24h S3 link —
+     * the presenter's own audio, streamed by their own browser; not a secret).
+     */
     async getTranscript(fileId) {
       const detail = await apiGet(`/open/third-party/files/${encodeURIComponent(fileId)}`);
       const segments = parseTranscriptPayload(detail);
@@ -242,7 +264,11 @@ export function createPlaudClient({
           'This recording has no transcript yet — transcribe it in the Plaud app, then retry.',
         );
       }
-      return { transcript };
+      // presigned_url only exists on the file-OBJECT payload shape.
+      const audioUrl = (detail && !Array.isArray(detail) && typeof detail.presigned_url === 'string' && detail.presigned_url)
+        ? detail.presigned_url
+        : null;
+      return { transcript, segments: toClientSegments(segments), audioUrl };
     },
   };
 }

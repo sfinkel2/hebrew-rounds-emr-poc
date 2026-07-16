@@ -2,7 +2,7 @@
 //
 // GET /api/plaud/status                      -> { connected }
 // GET /api/plaud/recordings                  -> { recordings: [{id,name,startAt,durationMs}] }
-// GET /api/plaud/recordings/:id/transcript   -> { transcript }
+// GET /api/plaud/recordings/:id/transcript   -> { transcript, segments, audioUrl }
 //
 // Thin HTTP layer over lib/plaud.js. Exported as a factory so tests inject a
 // client built with fake fetch + temp token file (the DI seam from the spec).

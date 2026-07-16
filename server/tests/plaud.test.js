@@ -15,6 +15,7 @@ import { join } from 'node:path';
 import {
   parseTranscriptPayload,
   joinSegments,
+  toClientSegments,
   isTokenStale,
 } from '../lib/plaud.js';
 
@@ -70,6 +71,32 @@ test('joinSegments joins content strings with newlines, skipping empties', () =>
   const segments = parseTranscriptPayload(FILE_DETAIL);
   assert.equal(joinSegments(segments), 'שלום, אני שמואל.\nהחולה יציב הבוקר.');
   assert.equal(joinSegments([{ content: 'א' }, { content: '' }, {}, { content: 'ב' }]), 'א\nב');
+});
+
+test('toClientSegments trims to {content, startMs, endMs} and nulls bad times', () => {
+  const raw = parseTranscriptPayload(FILE_DETAIL);
+  assert.deepEqual(toClientSegments(raw), [
+    { content: 'שלום, אני שמואל.', startMs: 30, endMs: 2000 },
+    { content: 'החולה יציב הבוקר.', startMs: 2000, endMs: 4730 },
+  ]);
+  assert.deepEqual(toClientSegments([{ content: 'א', start_time: 'x', end_time: null }]), [
+    { content: 'א', startMs: null, endMs: null },
+  ]);
+});
+
+// The client matches spans against these segments assuming their joined
+// contents ARE the transcript — same keep/drop rule as joinSegments.
+test('toClientSegments alignment invariant with joinSegments', () => {
+  const raw = [
+    { content: 'א', start_time: 0, end_time: 1 },
+    { content: '', start_time: 1, end_time: 2 },
+    {},
+    { content: 'ב', start_time: 2, end_time: 3 },
+  ];
+  assert.equal(
+    toClientSegments(raw).map((s) => s.content).join('\n'),
+    joinSegments(raw),
+  );
 });
 
 test('isTokenStale: absent expires_at is never stale', () => {
@@ -321,15 +348,43 @@ test('recording without a transcript → 502 plaud_no_transcript', async () => {
   }
 });
 
-test('transcript happy path returns the joined Hebrew string', async () => {
+// Real file-OBJECT shape (live-verified 2026-07-16): presigned_url is a 24h
+// S3 MP3 link used by the review-pane listen buttons.
+const AUDIO_URL = 'https://s3.example/rec.mp3?X-Amz-Expires=86400&sig=abc';
+const FILE_OBJECT = { id: 'f1', name: 'סבב בוקר', presigned_url: AUDIO_URL, source_list: FILE_DETAIL };
+
+test('transcript happy path returns transcript + timed segments + audioUrl', async () => {
+  const { dir, path } = await tempTokenFile(FRESH);
+  try {
+    const ff = fakeFetch([[`${API}/open/third-party/files/f1`, [jsonRes(FILE_OBJECT)]]]);
+    const client = createPlaudClient({ fetchImpl: ff, tokenPath: path });
+    await withApp(client, async (base) => {
+      const res = await fetch(`${base}/api/plaud/recordings/f1/transcript`);
+      assert.equal(res.status, 200);
+      assert.deepEqual(await res.json(), {
+        transcript: 'שלום, אני שמואל.\nהחולה יציב הבוקר.',
+        segments: [
+          { content: 'שלום, אני שמואל.', startMs: 30, endMs: 2000 },
+          { content: 'החולה יציב הבוקר.', startMs: 2000, endMs: 4730 },
+        ],
+        audioUrl: AUDIO_URL,
+      });
+    });
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('bare-array file payload yields audioUrl null (segments still present)', async () => {
   const { dir, path } = await tempTokenFile(FRESH);
   try {
     const ff = fakeFetch([[`${API}/open/third-party/files/f1`, [jsonRes(FILE_DETAIL)]]]);
     const client = createPlaudClient({ fetchImpl: ff, tokenPath: path });
     await withApp(client, async (base) => {
-      const res = await fetch(`${base}/api/plaud/recordings/f1/transcript`);
-      assert.equal(res.status, 200);
-      assert.deepEqual(await res.json(), { transcript: 'שלום, אני שמואל.\nהחולה יציב הבוקר.' });
+      const body = await (await fetch(`${base}/api/plaud/recordings/f1/transcript`)).json();
+      assert.equal(body.audioUrl, null);
+      assert.equal(body.segments.length, 2);
+      assert.equal(body.transcript, 'שלום, אני שמואל.\nהחולה יציב הבוקר.');
     });
   } finally {
     await rm(dir, { recursive: true, force: true });
