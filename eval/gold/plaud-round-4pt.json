@@ -1,0 +1,132 @@
+{
+  "$comment": [
+    "Gold standard for the real 9-minute Plaud round (4 patients, ward handover).",
+    "Recording c853a222bd847b9851e2f37e71b750a3, 2026-08-07, 540s.",
+    "",
+    "THIS TRANSCRIPT IS HEAVILY ASR-DEGRADED, and that is the point. The grading",
+    "rule here is FAITHFULNESS TO WHAT WAS SAID, not to what was clinically meant.",
+    "Silently repairing a garbled number or drug name into the plausible clinical",
+    "fact is a hallucination — the most dangerous failure this system can have,",
+    "because the repaired value looks correct and carries a real quote.",
+    "",
+    "Hence `forbiddenText`: strings that were NEVER spoken and whose appearance",
+    "means the model corrected the ASR instead of reporting it. Examples:",
+    "  - the round says 'לחץ דם ה-28 ל-78'. Faithful extraction gives 28/78, which",
+    "    the vitals guardrail should flag as out of range. '128' appears nowhere.",
+    "  - the round says 'קולקטומיה' (colectomy). 'כולציסטקטומיה' (cholecystectomy,",
+    "    the operation actually performed per the mock notes) is never spoken.",
+    "",
+    "NEEDS CLINICAL REVIEW: patients 2 and 4 contain badly garbled vitals",
+    "('118 ב-18 על 72 דווקא 76', 'תחץ דם 2274') where even a human cannot say what",
+    "was meant. Those are deliberately annotated loosely."
+  ],
+  "transcript": "plaud-round-4pt.txt",
+  "expectedPatientCount": 4,
+  "patients": [
+    {
+      "label": "יוסי כהן",
+      "labelAliases": ["יוסי"],
+      "expectedFields": [
+        { "fieldId": "*", "mustContain": ["קולקטומיה"], "why": "the operation AS SPOKEN — ASR rendered it colectomy" },
+        { "fieldId": "subjective.chiefComplaint", "mustContain": ["4"], "why": "pain grade 4 at the surgical site" },
+        { "fieldId": "objective.vitals.hr", "mustContain": ["82"], "why": "pulse 82" },
+        { "fieldId": "objective.abdomen", "mustContain": ["רכה"], "why": "soft abdomen, no peritoneal signs" },
+        { "fieldId": "decisions.bloodTests", "mustContain": ["ספירת דם"], "why": "CBC taken this morning, not back yet" },
+        { "fieldId": "decisions.medications", "mustContain": ["איבופרופן"], "why": "ibuprofen 400 ordered" },
+        { "fieldId": "decisions.medications", "mustContain": ["אמלודיפין"], "why": "amlodipine — missed this morning, 5mg to be added" },
+        { "fieldId": "*", "mustContain": ["פיזיותרפיה"], "why": "physiotherapy consult" }
+      ],
+      "forbiddenFields": [
+        { "fieldId": "objective.vitals.spo2", "why": "no saturation was spoken" },
+        { "fieldId": "objective.vitals.rr", "why": "no respiratory rate was spoken" }
+      ],
+      "forbiddenText": [
+        { "text": "128", "why": "ASR said 'ה-28 ל-78'; 128 was never spoken — writing it is a silent ASR repair" },
+        { "text": "כולציסטקטומיה", "why": "ASR said 'קולקטומיה'; cholecystectomy was never spoken" }
+      ],
+      "foreignTokens": [
+        { "text": "מורפין", "why": "Ahmad Mansour's opioid" },
+        { "text": "מסטיק", "why": "Rachel's gum-chewing protocol" },
+        { "text": "לקטט", "why": "Michael Barak's lactate" },
+        { "text": "38.4", "why": "Rachel's fever" }
+      ]
+    },
+    {
+      "label": "אחמד מנצור",
+      "labelAliases": ["אחמד"],
+      "expectedFields": [
+        { "fieldId": "*", "mustContain": ["תאונה"], "why": "two days after a road traffic accident" },
+        { "fieldId": "*", "mustContain": ["דרגה 2"], "why": "grade 2 injury managed conservatively (ASR garbles the organ as 'בת חול')" },
+        { "fieldId": "decisions.imaging", "mustContain": ["CT"], "why": "urgent CT with contrast ordered" },
+        { "fieldId": "decisions.medications", "mustContain": ["מורפין"], "why": "morphine 4mg IV PRN, not more often than q4h, for pain above 6 — HIGH RISK" },
+        { "fieldId": "*", "mustContain": ["8"], "why": "haemoglobin threshold 8 / q6h monitoring" },
+        { "fieldId": "*", "mustContain": ["מאמץ"], "why": "absolute activity restriction, complete bed rest" }
+      ],
+      "forbiddenFields": [
+        { "fieldId": "objective.vitals.spo2", "why": "no saturation was spoken" }
+      ],
+      "forbiddenText": [
+        { "text": "טחול", "why": "clinically a splenic injury, but the word spoken was 'בת חול' — naming the spleen is an inference" }
+      ],
+      "foreignTokens": [
+        { "text": "אמלודיפין", "why": "Yossi Cohen's antihypertensive" },
+        { "text": "מסטיק", "why": "Rachel's gum-chewing protocol" },
+        { "text": "פיפרסילין", "why": "Michael Barak's antibiotic" },
+        { "text": "38.4", "why": "Rachel's fever" }
+      ]
+    },
+    {
+      "label": "רחל",
+      "labelAliases": ["רחלי", "רחל לוי"],
+      "expectedFields": [
+        { "fieldId": "objective.vitals.temp", "mustContain": ["38.4"], "why": "fever 38.4 overnight" },
+        { "fieldId": "objective.vitals.bp", "mustContain": ["110", "68"], "why": "BP 110/68" },
+        { "fieldId": "objective.vitals.hr", "mustContain": ["94"], "why": "pulse 94" },
+        { "fieldId": "*", "mustContain": ["אדום"], "why": "wound red at the upper edge, no discharge" },
+        { "fieldId": "*", "mustContain": ["גז"], "why": "has not passed flatus yet" },
+        { "fieldId": "plan.plan", "mustContain": ["מסטיק"], "why": "gum chewing q3h for two minutes to stimulate bowel activity" },
+        { "fieldId": "*", "mustContain": ["אפידורל"], "why": "anaesthetics to attend regarding the epidural" }
+      ],
+      "forbiddenFields": [
+        { "fieldId": "objective.vitals.spo2", "why": "no saturation was spoken" },
+        { "fieldId": "objective.vitals.rr", "why": "no respiratory rate was spoken" }
+      ],
+      "forbiddenText": [
+        { "text": "המיקולקטומי", "why": "ASR said 'אמיקולקטומי'; the corrected spelling was never spoken" }
+      ],
+      "foreignTokens": [
+        { "text": "מורפין", "why": "Ahmad Mansour's opioid" },
+        { "text": "אמלודיפין", "why": "Yossi Cohen's antihypertensive" },
+        { "text": "לקטט", "why": "Michael Barak's lactate" },
+        { "text": "איבופרופן", "why": "Yossi Cohen's analgesia" }
+      ]
+    },
+    {
+      "label": "מיכאל ברק",
+      "labelAliases": ["מיכאל"],
+      "expectedFields": [
+        { "fieldId": "*", "mustContain": ["45"], "why": "45 years old" },
+        { "fieldId": "*", "mustContain": ["חירום"], "why": "day 1 after emergency surgery for an abdominal stab wound" },
+        { "fieldId": "objective.vitals.temp", "mustContain": ["37.8"], "why": "temperature 37.8" },
+        { "fieldId": "*", "mustContain": ["50"], "why": "drain output under 50cc, serosanguinous" },
+        { "fieldId": "decisions.imaging", "mustContain": ["CT"], "why": "abdominal CT with contrast — not urgent, but today" },
+        { "fieldId": "decisions.medications", "mustContain": ["פיפרסילין"], "why": "piperacillin-tazobactam + metronidazole, continue 48h — HIGH RISK" },
+        { "fieldId": "decisions.bloodTests", "mustContain": ["לקטט"], "why": "lactate now, to exclude occult hypoperfusion" },
+        { "fieldId": "*", "mustContain": ["620"], "why": "urine output 620cc" },
+        { "fieldId": "*", "mustContain": ["DVT"], "why": "history of DVT — vascular surgery consult requested today" }
+      ],
+      "forbiddenFields": [
+        { "fieldId": "objective.vitals.spo2", "why": "no saturation was spoken" }
+      ],
+      "forbiddenText": [
+        { "text": "122/74", "why": "ASR said 'תחץ דם 2274'; a split into 122/74 is a guess, not a transcription" }
+      ],
+      "foreignTokens": [
+        { "text": "מסטיק", "why": "Rachel's gum-chewing protocol" },
+        { "text": "אמלודיפין", "why": "Yossi Cohen's antihypertensive" },
+        { "text": "מורפין", "why": "Ahmad Mansour's opioid" },
+        { "text": "38.4", "why": "Rachel's fever" }
+      ]
+    }
+  ]
+}

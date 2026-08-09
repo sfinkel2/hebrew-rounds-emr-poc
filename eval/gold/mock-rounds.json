@@ -1,0 +1,165 @@
+{
+  "$comment": [
+    "Gold standard for eval/transcripts/mock-rounds.txt (docs/Mock rounds.docx).",
+    "Hand-annotated from the transcript. Every `mustContain` token below was",
+    "SPOKEN; every `forbiddenFields` entry was NOT spoken and appearing at all is",
+    "a fabrication. `foreignTokens` are strings belonging to the OTHER patient —",
+    "if one shows up in this patient's note, the round leaked across beds."
+  ],
+  "transcript": "mock-rounds.txt",
+  "expectedPatientCount": 2,
+  "patients": [
+    {
+      "label": "יוסי כהן",
+      "labelAliases": ["יוסי"],
+      "expectedFields": [
+        {
+          "fieldId": "subjective.currentIllness",
+          "mustContain": ["כולציסטקטומיה"],
+          "why": "post-op day 1 after laparoscopic cholecystectomy"
+        },
+        {
+          "fieldId": "subjective.chiefComplaint",
+          "mustContain": ["4"],
+          "why": "pain score 4 at the surgical site"
+        },
+        {
+          "fieldId": "objective.vitals.bp",
+          "mustContain": ["128", "78"],
+          "why": "BP 128/78"
+        },
+        {
+          "fieldId": "objective.vitals.hr",
+          "mustContain": ["82"],
+          "why": "HR 82"
+        },
+        {
+          "fieldId": "objective.abdomen",
+          "mustContain": ["רכה"],
+          "why": "soft abdomen, no peritoneal signs"
+        },
+        {
+          "fieldId": "decisions.medications",
+          "mustContain": ["Paracetamol", "1", "6"],
+          "why": "Paracetamol 1g q6h"
+        },
+        {
+          "fieldId": "decisions.medications",
+          "mustContain": ["Ibuprofen", "400", "8"],
+          "why": "Ibuprofen 400 q8h"
+        },
+        {
+          "fieldId": "decisions.bloodTests",
+          "mustContain": ["ספירת דם"],
+          "why": "CBC sent, not yet back"
+        },
+        {
+          "fieldId": "administrative.discharge",
+          "mustContain": ["10"],
+          "why": "discharge tomorrow if Hb > 10"
+        }
+      ],
+      "forbiddenFields": [
+        {
+          "fieldId": "objective.vitals.temp",
+          "why": "no temperature was ever spoken for this patient"
+        },
+        {
+          "fieldId": "objective.vitals.spo2",
+          "why": "no saturation was ever spoken for this patient"
+        },
+        {
+          "fieldId": "objective.vitals.rr",
+          "why": "no respiratory rate was ever spoken for this patient"
+        }
+      ],
+      "foreignTokens": [
+        { "text": "110", "why": "Rachel Levi's systolic BP" },
+        { "text": "94", "why": "Rachel Levi's heart rate" },
+        { "text": "38.4", "why": "Rachel Levi's fever" },
+        { "text": "Metronidazole", "why": "Rachel Levi's antibiotic" },
+        { "text": "Cefuroxime", "why": "Rachel Levi's antibiotic" },
+        { "text": "מסטיק", "why": "Rachel Levi's gum-chewing bowel protocol" }
+      ]
+    },
+    {
+      "label": "רחל לוי",
+      "labelAliases": ["רחל"],
+      "expectedFields": [
+        {
+          "fieldId": "objective.vitals.temp",
+          "mustContain": ["38.4"],
+          "why": "fever 38.4 overnight, down to 37.1"
+        },
+        {
+          "fieldId": "objective.vitals.bp",
+          "mustContain": ["110", "68"],
+          "why": "BP 110/68"
+        },
+        {
+          "fieldId": "objective.vitals.hr",
+          "mustContain": ["94"],
+          "why": "HR 94"
+        },
+        {
+          "fieldId": "decisions.imaging",
+          "mustContain": ["Ultrasound"],
+          "why": "wound ultrasound ordered"
+        },
+        {
+          "fieldId": "decisions.bloodTests",
+          "mustContain": ["CRP", "CBC"],
+          "why": "CRP and CBC ordered"
+        },
+        {
+          "fieldId": "decisions.medications",
+          "mustContain": ["Metronidazole", "Cefuroxime"],
+          "why": "continue both antibiotics pending results"
+        },
+        {
+          "fieldId": "decisions.procedures",
+          "mustContain": ["תרביות"],
+          "why": "wound cultures taken now"
+        },
+        {
+          "fieldId": "plan.plan",
+          "mustContain": ["מסטיק"],
+          "why": "gum chewing q3h to stimulate bowel activity"
+        },
+        {
+          "fieldId": "plan.plan",
+          "mustContain": ["גסטרו"],
+          "why": "gastroenterology consult if no bowel activity by tomorrow"
+        },
+        {
+          "fieldId": "plan.plan",
+          "mustContain": ["אפידורל"],
+          "why": "confirm anaesthetics attended re: the epidural"
+        },
+        {
+          "fieldId": "*",
+          "mustContain": ["אבצס"],
+          "why": "the attending's actual differential — rule out an abscess. Clinically the single most important item in this patient's round."
+        }
+      ],
+      "forbiddenFields": [
+        {
+          "fieldId": "objective.vitals.spo2",
+          "why": "no saturation was ever spoken for this patient"
+        },
+        {
+          "fieldId": "objective.vitals.rr",
+          "why": "no respiratory rate was ever spoken for this patient"
+        }
+      ],
+      "foreignTokens": [
+        { "text": "128", "why": "Yossi Cohen's systolic BP" },
+        { "text": "82", "why": "Yossi Cohen's heart rate" },
+        { "text": "Paracetamol", "why": "Yossi Cohen's analgesia" },
+        { "text": "Ibuprofen", "why": "Yossi Cohen's analgesia" },
+        { "text": "Amlodipine", "why": "Yossi Cohen's antihypertensive" },
+        { "text": "כולציסטקטומיה", "why": "Yossi Cohen's operation" }
+      ]
+    }
+  ]
+}

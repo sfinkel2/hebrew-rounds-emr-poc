@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Does the system write correct medical notes? — evaluation results</title>
+<style>
+  :root{
+    --bg:#fff; --fg:#15202b; --muted:#5c6a78; --rule:#e4e9ef; --panel:#f7f9fb;
+    --bad:#b42318; --good:#067647; --warn:#b54708;
+    --badbg:#fef3f2; --goodbg:#ecfdf3; --warnbg:#fffaeb; --infobg:#eff6ff; --info:#1849a9;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#0e141d; --fg:#e7eef6; --muted:#98a6b6; --rule:#232f3e; --panel:#141c27;
+      --bad:#ff8a80; --good:#7ee2a8; --warn:#f5c26b;
+      --badbg:#2a1614; --goodbg:#10231a; --warnbg:#2a2113; --infobg:#111d2e; --info:#8ab4f8;
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+       font:16.5px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:880px;margin:0 auto;padding:52px 24px 110px}
+  h1{font-size:32px;line-height:1.18;margin:0 0 10px;letter-spacing:-.022em}
+  h2{font-size:22px;margin:52px 0 6px;letter-spacing:-.012em}
+  h2 + .lede{color:var(--muted);font-size:15px;margin:0 0 18px;padding-bottom:12px;border-bottom:1px solid var(--rule)}
+  h3{font-size:17.5px;margin:32px 0 8px}
+  p{margin:0 0 15px}
+  .deck{font-size:18px;color:var(--muted);margin:0 0 6px}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:30px}
+  code{background:var(--panel);padding:1px 5px;border-radius:4px;
+       font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13.5px}
+  /* Hebrew clinical content is data — reproduced verbatim, never translated. */
+  .he{direction:rtl;unicode-bidi:isolate;text-align:right;display:block;background:var(--panel);
+      border:1px solid var(--rule);border-radius:7px;padding:9px 12px;margin:8px 0;line-height:1.85;
+      font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:14px}
+  .heI{direction:rtl;unicode-bidi:isolate}
+  .en{color:var(--muted);font-size:14px;margin:-2px 0 14px;font-style:italic}
+
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:12px;margin:22px 0}
+  .card{background:var(--panel);border:1px solid var(--rule);border-radius:11px;padding:15px 17px}
+  .card .n{font-size:28px;font-weight:660;letter-spacing:-.02em;line-height:1.12}
+  .card .l{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.45}
+  .n.bad{color:var(--bad)} .n.good{color:var(--good)} .n.warn{color:var(--warn)}
+
+  .tablewrap{overflow-x:auto;margin:16px 0}
+  table{border-collapse:collapse;width:100%;font-size:14.5px;min-width:520px}
+  th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--rule)}
+  th{font-size:12px;text-transform:uppercase;letter-spacing:.045em;color:var(--muted);font-weight:600}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  tr.total td{font-weight:660;border-top:2px solid var(--rule);border-bottom:none}
+  .z{color:var(--good);font-weight:650} .x{color:var(--bad);font-weight:650}
+  caption{caption-side:top;text-align:left;font-size:13.5px;color:var(--muted);padding-bottom:8px}
+
+  .box{border-left:3px solid var(--rule);background:var(--panel);padding:14px 18px;margin:18px 0;border-radius:0 9px 9px 0}
+  .box.bad{border-left-color:var(--bad);background:var(--badbg)}
+  .box.good{border-left-color:var(--good);background:var(--goodbg)}
+  .box.warn{border-left-color:var(--warn);background:var(--warnbg)}
+  .box.info{border-left-color:var(--info);background:var(--infobg)}
+  .box p:last-child{margin-bottom:0}
+  .box h4{margin:0 0 8px;font-size:15.5px}
+  dl{margin:0} dt{font-weight:650;margin-top:14px} dd{margin:2px 0 0;color:var(--muted);font-size:15px}
+  ul,ol{margin:0 0 15px;padding-left:24px} li{margin-bottom:7px}
+  footer{margin-top:60px;padding-top:18px;border-top:1px solid var(--rule);color:var(--muted);font-size:13.5px}
+  .tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+       padding:2px 8px;border-radius:4px;vertical-align:2px;margin-right:9px;background:var(--rule);color:var(--muted)}
+  .tag.bad{background:var(--bad);color:#fff} .tag.good{background:var(--good);color:#fff}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Does the system write correct medical notes?</h1>
+<p class="deck">
+  We recorded a real 9-minute surgical ward round covering four patients, ran it through the system,
+  and checked every fact it produced against an answer key written by hand.
+</p>
+<p class="meta">
+  Recording <code>c853a222</code> &middot; 7 Aug 2026 &middot; 540 seconds &middot; four patients &middot;
+  spoken Hebrew<br>
+  Tested on both AI models the system supports: <strong>Claude Opus 4.8</strong> (the default) and
+  <strong>Claude Haiku 4.5</strong> (about 5× cheaper)
+</p>
+
+<h2>The short version</h2>
+<p class="lede">Three things this test established.</p>
+
+<div class="box good">
+  <h4>1. The patient-splitting step works, and it is essential.</h4>
+  <p>
+    The system now cuts a ward round into one section per patient before it writes anything. With that
+    step switched on, <strong>both models produced four clean, separate charts with zero mix-ups.</strong>
+    With it switched off, both models failed badly — see point 2.
+  </p>
+</div>
+
+<div class="box bad">
+  <h4>2. Without splitting, the two models fail in opposite ways — and both failures are invisible.</h4>
+  <p>
+    The cheap model <strong>blended all four patients into one chart</strong>: one patient's morphine and
+    another's fever landed in the same record, and 19 of 33 entries were silently overwritten.
+  </p>
+  <p>
+    The expensive model did something arguably worse. It wrote a <em>tidy, well-evidenced chart for the
+    first patient and silently forgot the other three.</em> Rachel and Michael simply do not appear.
+    Nothing in the resulting note signals that anyone is missing — it looks complete.
+  </p>
+</div>
+
+<div class="box warn">
+  <h4>3. Both models quietly "corrected" things the doctors never said.</h4>
+  <p>
+    The audio transcription is imperfect. Where it garbled a number or a word, both models sometimes
+    replaced it with the medically plausible version — inventing a fact and attaching a genuine-looking
+    quote to it. This is the hardest failure to catch, because the result looks <em>more</em> correct,
+    not less. Details in <a href="#finding-repair">the third finding</a>.
+  </p>
+</div>
+
+<h2>How the test works</h2>
+<p class="lede">In plain terms, for readers who haven't seen an AI evaluation before.</p>
+
+<p>
+  The concern with any AI that writes into a medical record is simple: <em>it can produce something that
+  reads perfectly and is wrong.</em> You cannot check that by looking at the output and deciding it seems
+  fine — plausible-looking mistakes are exactly the ones that survive a quick read. So the test is built
+  to be mechanical:
+</p>
+<ol>
+  <li>
+    <strong>We wrote an answer key by hand.</strong> Listening to the round, we listed the facts a correct
+    note must contain for each patient — the blood pressure, the drug, the scan that was ordered — plus a
+    list of facts that were <em>never</em> said, which the system must therefore never write.
+  </li>
+  <li>
+    <strong>We ran the round through the system twice</strong> — once with the patient-splitting step on,
+    once with it off — so the two can be compared directly.
+  </li>
+  <li>
+    <strong>An ordinary computer program compared the output to the answer key.</strong> Every number in
+    this report comes from that comparison. <strong>No AI grades another AI here.</strong> That matters,
+    because the system contains an AI "checker" of its own, and that checker is one of the things being
+    tested — it cannot also be the referee.
+  </li>
+</ol>
+
+<h3>What we counted, and why each one matters</h3>
+<dl>
+  <dt>Facts captured</dt>
+  <dd>How many of the answer-key facts actually made it into the note. A missed drug or scan is a real
+      clinical risk, not a cosmetic miss.</dd>
+
+  <dt>Another patient's data in this chart</dt>
+  <dd>Whether one patient's numbers or medications appear in a different patient's record. In a hospital
+      this is the worst thing on the list.</dd>
+
+  <dt>Invented quote</dt>
+  <dd>Every fact the system writes must come with a word-for-word quote from the recording. Sometimes
+      the AI produces a quote that was never actually said. The system has an automatic check for this
+      that involves no AI at all — it simply searches the transcript for the quote — and anything that
+      fails is held back for a human to confirm.</dd>
+
+  <dt>Quote doesn't back the number</dt>
+  <dd>Subtler. The quote is genuine, but it doesn't actually contain the number or drug name the note
+      claims. The quote looks like evidence without being evidence. The system's automatic check does
+      <em>not</em> catch this today; only this evaluation does.</dd>
+
+  <dt>Silently fixed a mis-hearing</dt>
+  <dd>The system rewrote a garbled transcription into the medically plausible version — inventing a fact
+      that was never spoken. See finding 3.</dd>
+
+  <dt>Overwritten entries</dt>
+  <dd>How many extracted facts were thrown away when the note was saved, because two entries competed for
+      the same slot in the record.</dd>
+</dl>
+
+<h2>Results with patient-splitting on</h2>
+<p class="lede">This is how the system is now built to run. Four patients, four separate charts.</p>
+
+<div class="cards">
+  <div class="card"><div class="n good">4 / 4</div><div class="l">patients correctly identified, both models</div></div>
+  <div class="card"><div class="n good">0</div><div class="l">cross-patient mix-ups, both models</div></div>
+  <div class="card"><div class="n">87%</div><div class="l">facts captured — Opus 4.8</div></div>
+  <div class="card"><div class="n">77%</div><div class="l">facts captured — Haiku 4.5</div></div>
+</div>
+
+<div class="tablewrap">
+<table>
+  <caption>Per-patient, with splitting on. Lower is better in every column except “facts captured”.</caption>
+  <thead><tr>
+    <th>Patient</th><th class="num">Facts captured</th><th class="num">Other patients' data</th>
+    <th class="num">Invented quotes</th><th class="num">Quote doesn't back number</th>
+    <th class="num">Silent fixes</th><th class="num">Overwritten</th>
+  </tr></thead>
+  <tbody>
+    <tr><td colspan="7" style="border-bottom:none;padding-bottom:2px"><strong>Claude Opus 4.8</strong> (default)</td></tr>
+    <tr><td><span class="heI">יוסי כהן</span> Yossi Cohen</td><td class="num">8/8</td><td class="num z">0</td><td class="num z">0</td><td class="num x">3</td><td class="num z">0</td><td class="num z">0</td></tr>
+    <tr><td><span class="heI">אחמד מנצור</span> Ahmad Mansour</td><td class="num">5/6</td><td class="num z">0</td><td class="num z">0</td><td class="num x">3</td><td class="num x">1</td><td class="num z">0</td></tr>
+    <tr><td><span class="heI">רחל</span> Rachel</td><td class="num">7/7</td><td class="num z">0</td><td class="num z">0</td><td class="num z">0</td><td class="num x">1</td><td class="num z">0</td></tr>
+    <tr><td><span class="heI">מיכאל ברק</span> Michael Barak</td><td class="num">6/9</td><td class="num z">0</td><td class="num z">0</td><td class="num x">1</td><td class="num z">0</td><td class="num z">0</td></tr>
+    <tr class="total"><td>Opus total</td><td class="num">26/30 (87%)</td><td class="num z">0</td><td class="num z">0</td><td class="num x">7</td><td class="num x">2</td><td class="num z">0</td></tr>
+    <tr><td colspan="7" style="border-bottom:none;padding:14px 11px 2px"><strong>Claude Haiku 4.5</strong> (~5× cheaper)</td></tr>
+    <tr><td><span class="heI">יוסי כהן</span> Yossi Cohen</td><td class="num">7/8</td><td class="num z">0</td><td class="num x">3</td><td class="num x">2</td><td class="num x">1</td><td class="num z">0</td></tr>
+    <tr><td><span class="heI">אחמד מנצור</span> Ahmad Mansour</td><td class="num">5/6</td><td class="num z">0</td><td class="num x">1</td><td class="num x">1</td><td class="num z">0</td><td class="num z">0</td></tr>
+    <tr><td><span class="heI">רחל</span> Rachel</td><td class="num">5/7</td><td class="num z">0</td><td class="num x">1</td><td class="num x">1</td><td class="num z">0</td><td class="num z">0</td></tr>
+    <tr><td><span class="heI">מיכאל ברק</span> Michael Barak</td><td class="num">6/9</td><td class="num z">0</td><td class="num x">1</td><td class="num z">0</td><td class="num z">0</td><td class="num z">0</td></tr>
+    <tr class="total"><td>Haiku total</td><td class="num">23/30 (77%)</td><td class="num z">0</td><td class="num x">6</td><td class="num x">4</td><td class="num x">1</td><td class="num z">0</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>
+  The splitting step itself was correct on both models: all four beds found, each name read off the
+  recording, and every section an exact word-for-word slice of the transcript. That last property is
+  what keeps the quote-checking honest downstream. Three of the four boundaries fall in the
+  <em>middle</em> of a sentence, where the team turns to the next bed mid-breath — which is why the
+  splitter locates boundaries by matching spoken phrases rather than counting lines.
+</p>
+
+<h2>Results with patient-splitting off</h2>
+<p class="lede">The old behaviour. This is the comparison that justifies the new step.</p>
+
+<div class="box bad">
+  <h4>The two models break in opposite directions</h4>
+  <p>
+    <strong>Haiku merged everyone.</strong> It produced one note with 33 entries covering all four
+    patients at once. Ten slots in the record received multiple competing entries — blood pressure
+    four times over, medications four times over — and because a record slot holds one value,
+    <strong>19 of the 33 entries were silently discarded when the note was saved.</strong> Every
+    patient's chart contained four pieces of someone else's clinical data.
+  </p>
+  <p>
+    <strong>Opus dropped everyone but the first.</strong> It produced a short, coherent, well-evidenced
+    11-entry note — for Yossi Cohen alone. It captured 8 of his 8 facts and <strong>0 of Rachel's 7 and
+    0 of Michael's 9.</strong> Three of the four patients on the round are simply absent.
+  </p>
+</div>
+
+<div class="tablewrap">
+<table>
+  <caption>Facts captured per patient, splitting off.</caption>
+  <thead><tr><th>Patient</th><th class="num">Opus 4.8</th><th class="num">Haiku 4.5</th></tr></thead>
+  <tbody>
+    <tr><td>Yossi Cohen (first patient)</td><td class="num">8/8</td><td class="num">8/8</td></tr>
+    <tr><td>Ahmad Mansour</td><td class="num x">1/6</td><td class="num">5/6</td></tr>
+    <tr><td>Rachel</td><td class="num x">0/7</td><td class="num">7/7</td></tr>
+    <tr><td>Michael Barak</td><td class="num x">0/9</td><td class="num">7/9</td></tr>
+    <tr class="total"><td>Total</td><td class="num x">9/30 (30%)</td><td class="num">27/30</td></tr>
+    <tr><td>Cross-patient mix-ups</td><td class="num x">4</td><td class="num x">16</td></tr>
+    <tr><td>Entries discarded when saved</td><td class="num">1</td><td class="num x">19 of 33</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="box info">
+  <p>
+    <strong>Read Haiku's high "facts captured" score with care — it is an artefact, not a win.</strong>
+    Because its single note contains everyone's content, a fact belonging to Rachel can be "found" in
+    text that actually came from Yossi. Contamination inflates the score. That is precisely why mix-ups
+    are counted separately, and why the same note scores 27/30 on facts while carrying 16 mix-ups.
+  </p>
+</div>
+
+<div class="box bad">
+  <h4>Why Opus's failure is the more dangerous of the two</h4>
+  <p>
+    Haiku's mess is at least visibly a mess — duplicated fields, contradictory vitals, a reviewer would
+    likely notice. Opus's note has <strong>no duplicates, no invented quotes, and its internal AI checker
+    marked all 11 entries "properly evidenced."</strong> By every signal the system produces, it is a
+    clean note.
+  </p>
+  <p>
+    It is clean because everything it <em>did</em> write was correct. The problem is everything it didn't
+    write — and <strong>nothing in the system detects an omission.</strong> A missing patient leaves no
+    trace. A clinician reviewing that note has no way to know that three more people were discussed.
+  </p>
+</div>
+
+<h2 id="finding-repair">The mis-hearing problem</h2>
+<p class="lede">The finding with the clearest safety implication, present on both models.</p>
+
+<p>
+  The speech-to-text on this recording is rough — it is a real ward round, not a studio reading. Where it
+  produced something garbled, both models sometimes wrote down the version that <em>made medical sense</em>
+  rather than the version that was actually said.
+</p>
+
+<h3><span class="tag bad">Haiku</span>A blood pressure that was never spoken</h3>
+<p>The recording, word for word:</p>
+<div class="he">יש לנו כאן את יוסי כהן, מספר זהות 1234, יום לאחר קולקטומיה לפרוסקופית, לחץ דם ה-28 ל-78, דופק 82</div>
+<p class="en">"…blood pressure the-28 to 78, pulse 82"</p>
+<p>What Haiku wrote into the chart:</p>
+<div class="he">128/78</div>
+<div class="box bad">
+  <p>
+    <strong>The number 128 does not appear anywhere in the recording.</strong> The transcription captured
+    28; the model quietly upgraded it to the plausible 128 and attached a real quote to it.
+  </p>
+  <p>
+    Note the direction of the harm. A blood pressure of 28 is not survivable, so a <em>faithful</em>
+    reading would have tripped the system's range check and been held for a human. By being helpful, the
+    model routed a fabricated vital sign <em>around</em> the one safeguard designed to catch it.
+  </p>
+</div>
+
+<h3><span class="tag bad">Opus</span>Naming an organ the doctors didn't name</h3>
+<p>
+  Opus's version of this is subtler and, to a clinician, more defensible — which is what makes it harder
+  to police. The recording contains a garbled phrase where the injured organ should be. Opus wrote:
+</p>
+<div class="he">בן 34, יומיים לאחר תאונת דרכים, לאחר קרע בטחול בדרגה 2, מטופל שמרנית</div>
+<p class="en">"34 years old, two days after a road traffic accident, grade 2 splenic rupture, managed conservatively"</p>
+<div class="box warn">
+  <p>
+    A grade 2 splenic rupture is almost certainly what was meant. But <strong>the word "spleen" was never
+    spoken</strong> — the audio has an unrelated-sounding phrase in that position. Opus supplied the
+    diagnosis from clinical context. It also silently corrected the spelling of Rachel's operation.
+  </p>
+  <p>
+    These are good guesses. They may well be right. But a system that writes confident diagnoses the
+    doctors did not say is doing something categorically different from transcription, and the reviewing
+    clinician cannot tell the two apart from the note.
+  </p>
+</div>
+
+<h2>What the safety checks caught — and what they missed</h2>
+<p class="lede">The system has an automatic, non-AI safeguard. Here is how much of the load it carried.</p>
+
+<div class="box good">
+  <p>
+    <strong>On Haiku it worked.</strong> Haiku produced six quotes that were never actually said, usually
+    by stitching together fragments from different parts of the round. The automatic check — a plain
+    text search, no AI involved — caught <strong>all six</strong> and held them for human confirmation.
+  </p>
+</div>
+<div class="box bad">
+  <p>
+    <strong>On Opus it had nothing to catch — and that is not reassuring.</strong> Opus invented zero
+    quotes, so the safeguard never fired. But Opus still made two silent mis-hearing fixes and seven
+    entries where the quote doesn't contain the number being claimed. <strong>The better model's mistakes
+    are exactly the ones the current safeguard cannot see.</strong>
+  </p>
+  <p>
+    Concretely: the check asks "does this quote exist in the recording?" It does not ask "does this quote
+    actually contain the number in the note?" On a high-risk medication entry, Opus wrote a dose of
+    5&nbsp;mg with a quote that never mentions 5. This evaluation detects that. The live system does not.
+  </p>
+</div>
+
+<h2>What we can and cannot conclude</h2>
+<ul>
+  <li>
+    <strong>One recording, one run per model.</strong> These are not averages. Earlier testing on a
+    different transcript showed genuine run-to-run variation on identical input, so treat single numbers
+    as indicative rather than precise.
+  </li>
+  <li>
+    <strong>The answer key needs a clinician's review.</strong> Two of the four patients have vitals so
+    garbled that even a human listener cannot recover what was meant. Those are deliberately marked
+    loosely, and a surgeon should check our judgements before these numbers are quoted anywhere.
+  </li>
+  <li>
+    <strong>We graded faithfulness, not clinical correctness.</strong> The answer key rewards writing what
+    was <em>said</em> — including the transcription's errors — and penalises tidying them up. That is a
+    deliberate choice: a silently corrected value is an invention wearing good evidence. But it means
+    "facts captured" is not the same as "clinically complete".
+  </li>
+  <li>
+    <strong>Haiku ran without its reasoning step.</strong> That model predates the feature, so its numbers
+    are a floor rather than a like-for-like comparison.
+  </li>
+</ul>
+
+<h2>What we recommend</h2>
+<ol>
+  <li>
+    <strong>Keep the patient-splitting step.</strong> It is the difference between four clean charts and
+    either a contaminated merge or three vanished patients. This is the clearest result in the test.
+  </li>
+  <li>
+    <strong>Strengthen the quote check to verify numbers, not just existence.</strong> The logic already
+    exists in this evaluation; moving it into the live safeguard would convert a measurement into an
+    actual control, and would have caught the invented blood pressure.
+  </li>
+  <li>
+    <strong>Add an explicit check that every patient discussed has a chart.</strong> Nothing currently
+    detects a missing patient, which is Opus's failure mode and leaves no trace in the output.
+  </li>
+  <li>
+    <strong>Treat the AI checker as a second opinion, not a gate.</strong> Across both models it marked
+    almost everything as properly evidenced, including the note that was missing three patients. The
+    non-AI safeguards are what carry the safety argument.
+  </li>
+  <li>
+    <strong>The cheaper model is defensible only because the safeguards hold.</strong> Haiku made more
+    errors and the automatic check caught them. That is a genuine cost argument — but it also means the
+    safeguards, not the model, are the product.
+  </li>
+</ol>
+
+<footer>
+  Generated from <code>eval/results/opus-4-8.json</code> and <code>eval/results/haiku-4-5.json</code>.
+  Reproduce with <code>npm run eval plaud</code> (Opus) or
+  <code>CLAUDE_MODEL=claude-haiku-4-5 npm run eval plaud</code> (Haiku).
+  Method, metric definitions and the answer-key format: <code>eval/README.md</code>.
+  Hebrew clinical content is reproduced word-for-word and never translated — the quote check depends on
+  it being exact; English glosses are provided for readability only.
+</footer>
+
+</div>
+</body>
+</html>
