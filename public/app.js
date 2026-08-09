@@ -120,6 +120,24 @@ const STRINGS = {
     reviewEmpty: 'Structured fields will appear here after clicking “Structure & check”.',
     structuring: 'Structuring…',
     structProgress: 'Structuring the note and running judge + safety checks…',
+    segmenting: 'Splitting the round by patient…',
+    btnPaste: 'Paste a transcript',
+    pasteLabel: 'Paste the round transcript (Hebrew)',
+    pasteCancel: 'Cancel',
+    pasteUse: 'Use this transcript',
+    patientsOnRound: 'Patients on this round',
+    patientsHint: 'Each bed is structured, checked and committed separately.',
+    commitToChart: 'Commit to chart:',
+    segmentPending: 'not structured yet',
+    segmentReady: '{n} fields',
+    segmentCommitted: 'committed ✓',
+    errSegmentFailed: 'Could not split the round by patient.',
+    coverageTitle: 'Possible missing patient',
+    roundProgress: '{done} of {total} patients committed',
+    newChartFor: '＋ Open a new chart for {name}',
+    newChart: '＋ Open a new chart',
+    chooseChart: '— no matching chart — choose one —',
+    errNoChart: 'Choose a chart for this patient, or open a new one, before committing.',
     reviewErrorEmpty: 'An error occurred while structuring the note.',
     errNoFields: 'Structuring returned no fields.',
     errNoTranscript: 'There is no transcript to structure. Pull from Plaud or choose the scripted round.',
@@ -194,6 +212,24 @@ const STRINGS = {
     reviewEmpty: 'השדות המובנים יופיעו כאן לאחר לחיצה על «בנה הערה ובדוק».',
     structuring: 'מבנה…',
     structProgress: 'מבנה הערה ומריץ שופט + בדיקות בטיחות…',
+    segmenting: 'מחלק את הסבב לפי מטופלים…',
+    btnPaste: 'הדבק תמלול',
+    pasteLabel: 'הדבק את תמלול הסבב (עברית)',
+    pasteCancel: 'ביטול',
+    pasteUse: 'השתמש בתמלול זה',
+    patientsOnRound: 'מטופלים בסבב זה',
+    patientsHint: 'כל מיטה נבנית, נבדקת ונשמרת בנפרד.',
+    commitToChart: 'שמירה לתיק:',
+    segmentPending: 'טרם נבנה',
+    segmentReady: '{n} שדות',
+    segmentCommitted: 'נשמר ✓',
+    errSegmentFailed: 'לא ניתן לחלק את הסבב לפי מטופלים.',
+    coverageTitle: 'ייתכן שחסר מטופל',
+    roundProgress: '{done} מתוך {total} מטופלים נשמרו',
+    newChartFor: '＋ פתח תיק חדש עבור {name}',
+    newChart: '＋ פתח תיק חדש',
+    chooseChart: '— אין תיק תואם — יש לבחור —',
+    errNoChart: 'יש לבחור תיק עבור מטופל זה, או לפתוח תיק חדש, לפני השמירה.',
     reviewErrorEmpty: 'אירעה שגיאה בעת בניית ההערה.',
     errNoFields: 'המבנה לא החזיר שדות.',
     errNoTranscript: 'אין תמלול לבנות ממנו. משוך מ-Plaud או בחר את הסבב המתוסרט.',
@@ -292,8 +328,15 @@ const state = {
   mode: 'unknown',        // 'mock' | 'live' | 'unknown'
   patientId: null,
   emrState: null,         // last-known EMR record { patientId, patient, note, auditLog }
-  transcript: '',
-  fields: [],             // FieldRecord[] currently under review
+  transcript: '',         // the FULL round transcript as captured
+  // A ward round visits several beds. /api/segment cuts the round into one
+  // verbatim slice per patient; each slice is structured, judged and committed
+  // against its OWN chart, so two patients can never collide on note[fieldId].
+  segments: [],           // [{ index, patientLabel, transcript, patientId, fields, loaded, committed }]
+  activeSegment: 0,
+  coverage: null,         // deterministic missing-patient check from /api/segment
+  patients: [],           // [{ patientId, patient }] from /api/patients
+  fields: [],             // FieldRecord[] currently under review (active segment)
   committedFieldIds: [],  // fieldIds committed in the most recent commit (for flash)
   plaudConnected: false,
   // Audio playback for the pulled Plaud recording (empty for scripted rounds).
@@ -529,6 +572,13 @@ function clearCaptureError() { $('#capture-error').classList.add('hidden'); }
 
 function setTranscript(text) {
   state.transcript = text || '';
+  // A new round invalidates the previous round's per-patient split and any
+  // fields still under review — otherwise the next commit could write one
+  // round's findings into the chart selected for a different round.
+  state.segments = [];
+  state.activeSegment = 0;
+  state.fields = [];
+  $('#patient-bar')?.classList.add('hidden');
   const panel = $('#transcript-panel');
   if (state.transcript) {
     panel.textContent = state.transcript;
@@ -791,27 +841,59 @@ function showReviewError(msg) {
 }
 function clearReviewError() { $('#review-error').classList.add('hidden'); }
 
+/** The transcript the CURRENT review is grounded against (one patient's slice). */
+function activeTranscript() {
+  const seg = state.segments[state.activeSegment];
+  return seg ? seg.transcript : state.transcript;
+}
+
+/**
+ * Step 0: cut the round into one slice per patient, then structure the first.
+ * Slices are verbatim, so /api/structure and /api/judge are unchanged — they
+ * simply see one bed at a time instead of the whole ward.
+ */
 async function structureAndJudge() {
   if (!state.transcript) { showReviewError(t('errNoTranscript')); return; }
   clearReviewError();
   const btn = $('#btn-structure');
   btn.disabled = true; btn.textContent = t('structuring');
   $('#review-empty')?.remove();
-  $('#fields-container').innerHTML = `<div class="text-sm text-slate-400 py-8 text-center">${esc(t('structProgress'))}</div>`;
+  $('#fields-container').innerHTML = `<div class="text-sm text-slate-400 py-8 text-center">${esc(t('segmenting'))}</div>`;
   setStep('review');
 
   try {
-    // Pass 1: structure
-    const sres = await api('/api/structure', { method: 'POST', body: { transcript: state.transcript } });
-    let fields = Array.isArray(sres.fields) ? sres.fields : [];
-    if (!fields.length) throw Object.assign(new Error(t('errNoFields')), { code: 'EMPTY' });
+    let segments;
+    let coverage = null;
+    try {
+      const seg = await api('/api/segment', { method: 'POST', body: { transcript: state.transcript } });
+      segments = Array.isArray(seg.segments) && seg.segments.length ? seg.segments : null;
+      coverage = seg.coverage || null;
+    } catch {
+      segments = null; // segmentation unavailable — fall back to one whole-round note
+    }
+    if (!segments) {
+      segments = [{ index: 0, patientLabel: '', transcript: state.transcript }];
+    }
+    state.coverage = coverage;
+    renderCoverageWarning();
 
-    // Pass 2: judge (+ server-side guardrails merged in)
-    const jres = await api('/api/judge', { method: 'POST', body: { transcript: state.transcript, fields } });
-    fields = Array.isArray(jres.fields) ? jres.fields : fields;
-
-    state.fields = fields.map(normalizeRecord);
-    renderFields();
+    state.segments = segments.map((s, i) => ({
+      index: i,
+      patientLabel: s.patientLabel || '',
+      transcript: s.transcript,
+      // Match the spoken name to an existing chart. Deliberately left NULL when
+      // nothing matches: a real round visits beds that are not in the EMR, and
+      // silently defaulting to the first chart would file this patient's round
+      // into a different patient's record — the exact mis-attribution the whole
+      // segmentation layer exists to prevent. The reviewer must pick a chart or
+      // open a new one before commit is allowed.
+      patientId: matchPatientId(s.patientLabel),
+      fields: [],
+      loaded: false,
+    }));
+    state.activeSegment = 0;
+    renderPatientBar();
+    await loadSegment(0);
   } catch (e) {
     $('#fields-container').innerHTML = '';
     const ed = el('div', 'text-sm text-slate-400 py-8 text-center', esc(t('reviewErrorEmpty')));
@@ -821,6 +903,176 @@ async function structureAndJudge() {
     showReviewError(e.message || t('errStructureFailed'));
   } finally {
     btn.disabled = !state.transcript; btn.textContent = t('btnStructure');
+  }
+}
+
+/** Run structure + judge for one segment, caching the result on the segment. */
+async function loadSegment(i) {
+  const seg = state.segments[i];
+  if (!seg) return;
+  state.activeSegment = i;
+  syncChartSelector();
+
+  if (seg.loaded) {
+    state.fields = seg.fields;
+    renderPatientBar();
+    renderFields();
+    return;
+  }
+
+  $('#review-empty')?.remove();
+  $('#fields-container').innerHTML = `<div class="text-sm text-slate-400 py-8 text-center">${esc(t('structProgress'))}</div>`;
+  renderPatientBar();
+
+  // Pass 1: structure — against this patient's slice only.
+  const sres = await api('/api/structure', { method: 'POST', body: { transcript: seg.transcript } });
+  let fields = Array.isArray(sres.fields) ? sres.fields : [];
+  if (!fields.length) throw Object.assign(new Error(t('errNoFields')), { code: 'EMPTY' });
+
+  // Pass 2: judge (+ server-side guardrails merged in).
+  const jres = await api('/api/judge', { method: 'POST', body: { transcript: seg.transcript, fields } });
+  fields = Array.isArray(jres.fields) ? jres.fields : fields;
+
+  seg.fields = fields.map(normalizeRecord);
+  seg.loaded = true;
+  state.fields = seg.fields;
+  renderPatientBar();
+  renderFields();
+}
+
+/** Match a spoken patient name to a seeded chart id (Hebrew or English name). */
+function matchPatientId(label) {
+  const name = String(label || '').trim();
+  if (!name) return null;
+  const hit = state.patients.find((p) => {
+    const he = String(p.patient?.nameHe || '').trim();
+    const en = String(p.patient?.name || '').trim();
+    return (he && (he === name || name.includes(he) || he.includes(name)))
+      || (en && en.toLowerCase() === name.toLowerCase());
+  });
+  return hit ? hit.patientId : null;
+}
+
+/**
+ * Surface the deterministic missing-patient check. An omission is the one
+ * failure no other layer can see — there is no wrong value to catch and no bad
+ * quote — so this banner is the only signal the reviewer gets.
+ */
+function renderCoverageWarning() {
+  const box = $('#coverage-warning');
+  if (!box) return;
+  const warnings = state.coverage?.warnings || [];
+  if (!warnings.length) { box.classList.add('hidden'); box.innerHTML = ''; return; }
+  box.classList.remove('hidden');
+  box.innerHTML =
+    `<div class="font-semibold mb-1">⚠ ${esc(t('coverageTitle'))}</div>` +
+    warnings.map((w) => `<div>${esc(w.message)}</div>`).join('');
+}
+
+/** One tab per bed; hidden entirely for a single-patient round. */
+function renderPatientBar() {
+  const bar = $('#patient-bar');
+  const tabs = $('#patient-tabs');
+  if (!bar || !tabs) return;
+
+  if (state.segments.length < 2) { bar.classList.add('hidden'); return; }
+  bar.classList.remove('hidden');
+  tabs.innerHTML = '';
+
+  // Round-level progress: which beds still have nothing in their chart. Without
+  // this, "I committed a patient" and "I committed the round" look identical.
+  const done = state.segments.filter((s) => s.committed).length;
+  const hint = $('#patient-bar-hint');
+  if (hint) {
+    hint.textContent = t('roundProgress', { done, total: state.segments.length });
+    hint.removeAttribute('data-i18n');   // now dynamic; applyLanguage must not overwrite it
+    hint.className = done === state.segments.length
+      ? 'text-[11px] font-semibold text-emerald-700'
+      : 'text-[11px] text-amber-700';
+  }
+
+  state.segments.forEach((seg, i) => {
+    const active = i === state.activeSegment;
+    const chart = state.patients.find((p) => p.patientId === seg.patientId);
+    const name = seg.patientLabel || chart?.patient?.nameHe || chart?.patient?.name || `#${i + 1}`;
+    const sub = seg.committed
+      ? t('segmentCommitted')
+      : (seg.loaded ? t('segmentReady', { n: seg.fields.length }) : t('segmentPending'));
+
+    const b = el('button', `rounded-xl px-3 py-2 text-start ring-1 transition ${
+      active ? 'bg-brand-600 text-white ring-brand-600' : 'bg-white text-slate-700 ring-slate-300 hover:bg-slate-50'
+    }`);
+    b.type = 'button';
+    b.innerHTML =
+      `<span class="block text-sm font-medium" dir="rtl">${esc(name)}</span>` +
+      `<span class="block text-[11px] ${active ? 'text-white/80' : 'text-slate-500'}">${esc(sub)}</span>`;
+    b.addEventListener('click', async () => {
+      if (i === state.activeSegment && seg.loaded) return;
+      try {
+        clearReviewError();
+        await loadSegment(i);
+      } catch (e) {
+        showReviewError(e.message || t('errStructureFailed'));
+      }
+    });
+    tabs.appendChild(b);
+  });
+}
+
+/** Sentinel value for the "open a new chart" option in the selector. */
+const NEW_CHART = '__new__';
+
+/** Chart selector reflects and edits the active segment's commit target. */
+function syncChartSelector() {
+  const sel = $('#patient-chart');
+  if (!sel) return;
+  const seg = state.segments[state.activeSegment];
+  sel.innerHTML = '';
+  for (const p of state.patients) {
+    const o = document.createElement('option');
+    o.value = p.patientId;
+    const nm = p.patient?.nameHe || p.patient?.name || p.patientId;
+    o.textContent = `${nm} · ${p.patientId}${p.provisional ? ' · new' : ''}`;
+    if (seg && p.patientId === seg.patientId) o.selected = true;
+    sel.appendChild(o);
+  }
+  // A real round visits beds the seed has never heard of. Without this the
+  // presenter can only commit to a pre-seeded chart, so an unrecognised patient
+  // would have to be filed under someone else's record.
+  const label = seg?.patientLabel?.trim();
+  const o = document.createElement('option');
+  o.value = NEW_CHART;
+  o.textContent = label ? t('newChartFor', { name: label }) : t('newChart');
+  sel.appendChild(o);
+
+  // No chart matched the spoken name — surface that instead of quietly
+  // pointing at whichever chart happened to be first.
+  if (seg && !seg.patientId) {
+    const unset = document.createElement('option');
+    unset.value = '';
+    unset.textContent = t('chooseChart');
+    unset.selected = true;
+    sel.insertBefore(unset, sel.firstChild);
+  }
+}
+
+/** Open a provisional chart for the active segment's spoken name, and select it. */
+async function openChartForActiveSegment() {
+  const seg = state.segments[state.activeSegment];
+  const name = seg?.patientLabel?.trim();
+  try {
+    const created = await api('/api/patients', {
+      method: 'POST',
+      body: name ? { nameHe: name } : { name: `Patient ${state.activeSegment + 1}` },
+    });
+    const pl = await api('/api/patients');
+    state.patients = Array.isArray(pl.patients) ? pl.patients : state.patients;
+    if (seg) seg.patientId = created.patientId;
+    syncChartSelector();
+    renderPatientBar();
+  } catch (e) {
+    showReviewError(e.message || t('errStructureFailed'));
+    syncChartSelector();   // revert the selector to the segment's real target
   }
 }
 
@@ -866,10 +1118,12 @@ function verdictLabel(v) {
 }
 
 // substring check mirroring the server grounding idea, for the highlight only.
+// Checked against the ACTIVE PATIENT'S slice, not the whole round — a quote
+// from the next bed must not light up as grounded on this patient's note.
 function spanInTranscript(span) {
   if (!span) return false;
   const norm = (s) => s.replace(/\s+/g, ' ').trim();
-  return norm(state.transcript).includes(norm(span));
+  return norm(activeTranscript()).includes(norm(span));
 }
 
 function renderFields() {
@@ -1057,6 +1311,7 @@ function refreshCommitState() {
 async function commitApproved() {
   const approved = state.fields.filter((f) => f.status === 'approved');
   if (!approved.length) return;
+  clearReviewError();   // a prior "choose a chart" refusal must not outlive the fix
   const btn = $('#btn-commit');
   btn.disabled = true; btn.textContent = t('committing');
   $('#legacy-menu-status').textContent = 'Committing…';
@@ -1073,11 +1328,25 @@ async function commitApproved() {
     committedValue: f.committedValue,
   }));
 
+  // Commit goes to THIS segment's chart, not a single global patient.
+  const seg = state.segments[state.activeSegment];
+  const targetPatientId = seg ? seg.patientId : state.patientId;
+
+  // Refuse rather than guess. Committing a round to an unconfirmed chart is
+  // how one patient's medications end up in another patient's record.
+  if (!targetPatientId) {
+    showReviewError(t('errNoChart'));
+    btn.disabled = false; btn.textContent = t('btnCommit');
+    refreshCommitState();
+    return;
+  }
+
   try {
     const res = await api('/api/commit', {
       method: 'POST',
-      body: { patientId: state.patientId, fields: payload },
+      body: { patientId: targetPatientId, fields: payload },
     });
+    if (seg) { seg.committed = true; renderPatientBar(); }
     const emr = normalizeEmr(res) || (res.emrState ? res.emrState : null);
     state.committedFieldIds = approved.map((f) => f.fieldId);
     if (emr) {
@@ -1133,8 +1402,33 @@ async function init() {
   $('#plaud-picker-close').addEventListener('click', closePlaudPicker);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePlaudPicker(); });
   $('#btn-scripted').addEventListener('click', useScriptedRound);
+  $('#btn-paste').addEventListener('click', () => {
+    $('#paste-panel').classList.toggle('hidden');
+    $('#paste-text').focus();
+  });
+  $('#paste-cancel').addEventListener('click', () => $('#paste-panel').classList.add('hidden'));
+  $('#paste-use').addEventListener('click', () => {
+    const text = $('#paste-text').value.trim();
+    if (!text) return;
+    clearCaptureError();
+    clearRecordingAudio();   // a pasted round has no audio to play back
+    setTranscript(text);
+    $('#paste-panel').classList.add('hidden');
+  });
   $('#btn-structure').addEventListener('click', structureAndJudge);
   $('#btn-commit').addEventListener('click', commitApproved);
+  $('#patient-chart').addEventListener('change', (e) => {
+    if (e.target.value === NEW_CHART) { openChartForActiveSegment(); return; }
+    const seg = state.segments[state.activeSegment];
+    if (seg) seg.patientId = e.target.value;
+    renderPatientBar();
+  });
+
+  // The round's beds, for tab labels and the commit-target selector.
+  try {
+    const pl = await api('/api/patients');
+    state.patients = Array.isArray(pl.patients) ? pl.patients : [];
+  } catch { state.patients = []; }
   $('#legacy-audit-btn').addEventListener('click', () => {
     $('#legacy-audit-panel').scrollIntoView({ behavior: 'smooth', block: 'center' });
   });

@@ -397,6 +397,23 @@ export async function judgeNote(transcript, fields) {
 }
 
 /**
+ * Structured-JSON Claude call for other modules (e.g. lib/segment.js) that need
+ * the SAME model/thinking/output conventions this file enforces, without
+ * duplicating the SDK setup. Returns the parsed JSON object.
+ *
+ * Callers are responsible for their own mock-mode branch — this always goes
+ * live and throws if no key is configured.
+ *
+ * @param {{system: string, userText: string, schema: object}} args
+ * @returns {Promise<object>} parsed JSON matching `schema`
+ */
+export async function callClaudeJson({ system, userText, schema }) {
+  const anthropic = await getAnthropic();
+  const response = await callClaude(anthropic, { system, userText, schema });
+  return parseClaudeJson(response);
+}
+
+/**
  * Shared Claude call. Requests structured JSON output (output_config.format),
  * uses adaptive thinking (per claude-api guidance), and falls back to a current
  * model id if the preferred one is unavailable (404/not_found).
@@ -427,4 +444,11 @@ async function callClaude(anthropic, { system, userText, schema }) {
   }
 }
 
-export default { transcribeAudio, structureNote, judgeNote, isTranscribeMock, isClaudeMock };
+export default {
+  transcribeAudio,
+  structureNote,
+  judgeNote,
+  callClaudeJson,
+  isTranscribeMock,
+  isClaudeMock,
+};

@@ -27,7 +27,10 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const dataDir = join(__dirname, '..', 'data');
 
 const seed = JSON.parse(readFileSync(join(dataDir, 'patient.seed.json'), 'utf8'));
-const PATIENT_ID = seed.patientId;
+// The seed carries a ward round's worth of patients ({ patients: [...] }); older
+// single-patient seeds were a bare record. Commit semantics are per-patient, so
+// these tests exercise the first seeded patient either way.
+const PATIENT_ID = Array.isArray(seed.patients) ? seed.patients[0].patientId : seed.patientId;
 
 // Resolve the spec §5 emr-store interface whether it is exposed as named
 // exports (getEmr / applyCommit), a default object, or a named `emrStore`.

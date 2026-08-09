@@ -23,6 +23,7 @@ import { dirname, join } from 'node:path';
 import { resetEmrState } from './scripts/reset.js';
 
 import transcribeRoute from './routes/transcribe.js';
+import segmentRoute from './routes/segment.js';
 import structureRoute from './routes/structure.js';
 import judgeRoute from './routes/judge.js';
 import commitRoute from './routes/commit.js';
@@ -65,6 +66,7 @@ export function createApp() {
 
   // API routes (spec §5). transcribe.js owns its own multer middleware.
   app.use('/api', transcribeRoute);
+  app.use('/api', segmentRoute);
   app.use('/api', structureRoute);
   app.use('/api', judgeRoute);
   app.use('/api', commitRoute);

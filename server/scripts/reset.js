@@ -5,26 +5,22 @@
 // `npm run reset` and invoked on server start so every class rehearsal begins
 // from a clean, identical patient record (spec §9).
 
-import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const dataDir = join(__dirname, '..', 'data');
-const seedPath = join(dataDir, 'patient.seed.json');
-const statePath = join(dataDir, 'emr-state.json');
+import { seedEmrState, getStatePath } from '../lib/emrStore.js';
 
 /**
- * Copy the seed file to the working-state file. Validates that the seed is
- * parseable JSON before writing so a corrupt seed fails loudly.
+ * Copy the seed file to the working-state file. Delegates to
+ * emrStore.seedEmrState so there is ONE implementation: it validates the seed,
+ * writes atomically (temp + rename), and honours EMR_STATE_PATH. A second copy
+ * of this logic here previously wrote the default path non-atomically, which
+ * produced torn reads when a test process reset the file while another read it.
+ *
  * @returns {string} the absolute path of the file written
  */
 export function resetEmrState() {
-  const raw = readFileSync(seedPath, 'utf8');
-  // Parse to validate; re-serialize for a normalized, pretty file.
-  const seed = JSON.parse(raw);
-  writeFileSync(statePath, JSON.stringify(seed, null, 2) + '\n', 'utf8');
-  return statePath;
+  seedEmrState();
+  return getStatePath();
 }
 
 // Run as a script (node server/scripts/reset.js).
