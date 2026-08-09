@@ -184,3 +184,97 @@ test('vitals range: an in-range vital is ok, an out-of-range vital is flagged', 
     'the out-of-range message should mention the range failure',
   );
 });
+
+// ── Check 1b: does the quote actually SUPPORT the value? ────────────────────
+//
+// Check 1 is a substring test: "is this quote real?" It cannot ask "does this
+// quote back up what the note claims?" Evaluating the real ward round caught
+// exactly that gap — a blood pressure of "128/78" written from audio saying
+// "לחץ דם ה-28 ל-78". The quote was genuine, so check 1 passed it and the judge
+// called it grounded, and a fabricated vital reached the note with real
+// provenance. Worse, a faithful systolic of 28 is out of range and would have
+// been held by check 3; "repairing" it to 128 routed it around that safeguard.
+
+/** Build a record with an arbitrary value/span pair against a given transcript. */
+function guardPair(fieldId, value, sourceSpan, transcript) {
+  const rec = makeFieldRecord(fieldId, {
+    value,
+    sourceSpan,
+    confidence: 0.95,
+    judge: { verdict: 'grounded', reason: '', highRisk: false },
+  });
+  return applyGuardrails(transcript, [rec])[0];
+}
+
+test('THE REGRESSION: a vital "repaired" to a plausible number is caught', () => {
+  const spoken = 'יוסי כהן, מספר זהות 1234, לחץ דם ה-28 ל-78, דופק 82';
+  const out = guardPair('objective.vitals.bp', '128/78', 'לחץ דם ה-28 ל-78', spoken);
+
+  assert.equal(out.guardrail.passed, true, 'the quote is real — grounding itself did not fail');
+  assert.equal(
+    out.guardrail.requiresConfirmation,
+    true,
+    'a value whose quote never mentions 128 must be held for a human',
+  );
+  assert.ok(
+    out.guardrail.messages.some((m) => m.includes('128')),
+    'the message must name the unsupported number',
+  );
+});
+
+test('a drug named in the value but absent from the quote is caught', () => {
+  // The other half of the same failure: a medications value that fuses two
+  // separate parts of the round while quoting only one of them.
+  const spoken = 'תן לו Paracetamol 1 גרם כל 6 שעות ו-Ibuprofen 400 כל 8 שעות. תוסיף 5 מיליגרם Amlodipine.';
+  const out = guardPair(
+    'decisions.medications',
+    'Paracetamol 1 גרם כל 6 שעות, Ibuprofen 400 כל 8 שעות, Amlodipine 5 מ"ג',
+    'Paracetamol 1 גרם כל 6 שעות ו-Ibuprofen 400 כל 8 שעות',
+    spoken,
+  );
+  assert.equal(out.guardrail.requiresConfirmation, true);
+  assert.ok(out.guardrail.messages.some((m) => m.includes('Amlodipine')));
+});
+
+test('a value fully backed by its quote is not flagged', () => {
+  const spoken = 'לחץ דם 128 על 78, דופק 82';
+  const out = guardPair('objective.vitals.bp', '128/78', 'לחץ דם 128 על 78', spoken);
+  assert.equal(out.guardrail.requiresConfirmation, false, 'reformatting 128 על 78 → 128/78 is legitimate');
+  assert.deepEqual(out.guardrail.messages, []);
+});
+
+test('units the speaker never said are not treated as unsupported', () => {
+  // "110/68 mmHg" from "לחץ דם 110 על 68" is a unit spelled out, not an
+  // invented fact. Flagging it would bury the real findings in noise.
+  const spoken = 'לחץ דם 110 על 68, דופק 94';
+  const out = guardPair('objective.vitals.bp', '110/68 mmHg', 'לחץ דם 110 על 68', spoken);
+  assert.equal(out.guardrail.requiresConfirmation, false);
+});
+
+test('clinically meaningful abbreviations are NOT exempt', () => {
+  // CT is not a unit. If the note orders a scan the quote never mentions,
+  // that is precisely what this check exists to catch.
+  const spoken = 'הכאב העמוק שהיא מתארת, צריך לשלול אבצס. תיקח תרביות מהפצע עכשיו.';
+  const out = guardPair('decisions.imaging', 'CT בטן עם חומר ניגוד', 'תיקח תרביות מהפצע עכשיו', spoken);
+  assert.equal(out.guardrail.requiresConfirmation, true);
+  assert.ok(out.guardrail.messages.some((m) => m.includes('CT')));
+});
+
+test('Hebrew rewording alone never triggers the check', () => {
+  // The structurer is instructed to rewrite spoken Hebrew into clinical
+  // register, so differing Hebrew words are expected and must not be flagged.
+  const spoken = 'יש לי כאב בבטן, קשה לי לזוז';
+  const out = guardPair('subjective.chiefComplaint', 'המטופל מדווח על כאב בטני וקושי בתנועה', 'יש לי כאב בבטן, קשה לי לזוז', spoken);
+  assert.equal(out.guardrail.requiresConfirmation, false);
+  assert.deepEqual(out.guardrail.messages, []);
+});
+
+test('an already-ungrounded field is not double-reported', () => {
+  // If the quote is not in the transcript at all, check 1 owns that failure —
+  // adding "the quote does not mention X" on top would just be noise.
+  const spoken = 'לחץ דם 128 על 78';
+  const out = guardPair('objective.vitals.bp', '128/78', 'ציטוט שמעולם לא נאמר', spoken);
+  assert.equal(out.guardrail.passed, false);
+  assert.equal(out.guardrail.messages.length, 1, 'only the grounding failure should be reported');
+  assert.ok(/not grounded/i.test(out.guardrail.messages[0]));
+});

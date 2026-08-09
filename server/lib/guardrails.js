@@ -6,9 +6,10 @@
 // sub-object: { passed, requiresConfirmation, messages[] }.
 //
 // This is the LLM-independent backstop — it catches the structurer/judge
-// fabricating grounding, fires on every high-risk field regardless of what the
-// LLM said, and range-checks numeric vitals. These three checks are the
-// safety-critical, unit-testable core of the malpractice-prevention story.
+// fabricating grounding, catches a quote that does not support the value it is
+// attached to, fires on every high-risk field regardless of what the LLM said,
+// and range-checks numeric vitals. These checks are the safety-critical,
+// unit-testable core of the malpractice-prevention story.
 //
 // Owns the `guardrail` sub-object ONLY. Does not touch value/sourceSpan/judge.
 
@@ -56,7 +57,40 @@ function parseLeadingNumber(value) {
 }
 
 /**
- * Apply the three deterministic guardrail checks to every field and populate
+ * Units of measure and formatting tokens. A value may legitimately spell out a
+ * unit the speaker never said ("110/68 mmHg" from "לחץ דם 110 על 68"), so these
+ * are exempt from the coverage check below. Clinically meaningful abbreviations
+ * (CT, MRI, IV, PRN) are deliberately NOT here — if the note claims a CT and the
+ * quote never mentions one, that is exactly what we want to catch.
+ */
+const UNIT_TOKENS = new Set([
+  'mmhg', 'bpm', 'mg', 'mcg', 'ml', 'cc', 'kg', 'cm', 'mm', 'iu', 'meq', 'hg',
+]);
+
+/**
+ * Tokens in a value that its source quote ought to account for: numbers and
+ * Latin-script words (doses, drug names, lab names).
+ *
+ * Hebrew wording is deliberately ignored — the structurer is instructed to
+ * rewrite spoken Hebrew into clinical register, so the words legitimately
+ * differ from the transcript. What it must NOT do is introduce a number or a
+ * drug the quote never mentions.
+ *
+ * @param {*} text
+ * @returns {string[]} unique risk-bearing tokens
+ */
+function riskTokens(text) {
+  const s = String(text ?? '');
+  const numbers = s.match(/\d+(?:\.\d+)?/g) || [];
+  // 2+ letters, so two-letter clinical abbreviations (CT, IV, PO) are covered —
+  // an imaging order the quote never mentions is exactly what this must catch.
+  const latin = s.match(/[A-Za-z][A-Za-z-]+/g) || [];
+  const all = [...numbers, ...latin].filter((tk) => !UNIT_TOKENS.has(tk.toLowerCase()));
+  return [...new Set(all)];
+}
+
+/**
+ * Apply the deterministic guardrail checks to every field and populate
  * `field.guardrail`. Mutates and returns the same array.
  *
  * Pure: depends only on its arguments + the static FIELD_DEFS catalog. No I/O,
@@ -92,6 +126,34 @@ export function applyGuardrails(transcript, fields) {
         grounded = false;
         requiresConfirmation = true;
         messages.push('Source quote not found in transcript — not grounded in transcript.');
+      }
+    }
+
+    // ── Check 1b: Does the quote actually SUPPORT the value? ─────────────
+    // Check 1 asks "is this quote real?" — a substring test. It cannot ask
+    // "does this quote back up what the note claims?", and that gap is not
+    // theoretical: evaluating the real ward round caught a blood pressure of
+    // "128/78" written from audio that says "לחץ דם ה-28 ל-78". The 128 was
+    // never spoken. The quote was genuine, so check 1 passed it; the judge
+    // called it grounded; and a fabricated vital reached the note wearing
+    // real provenance.
+    //
+    // Worse, it fabricated its way AROUND check 3: a faithful systolic of 28
+    // is out of range and would have been held for a human. "Repairing" it to
+    // 128 made it plausible enough to sail through.
+    //
+    // So: every number and Latin-script token in the value must appear in the
+    // quote. This forces confirmation rather than failing grounding — the
+    // quote IS real, which is what `passed` records; what is unverified is
+    // whether it supports the claim, and that is a human's call.
+    if (populated && grounded) {
+      const span = normalizeForGrounding(field.sourceSpan);
+      const missing = riskTokens(field.value).filter((tk) => !span.includes(tk));
+      if (missing.length) {
+        requiresConfirmation = true;
+        messages.push(
+          `Source quote does not mention: ${missing.join(', ')} — value not fully supported by its quote.`,
+        );
       }
     }
 
