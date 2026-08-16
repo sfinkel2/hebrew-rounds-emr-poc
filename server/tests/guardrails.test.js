@@ -278,3 +278,32 @@ test('an already-ungrounded field is not double-reported', () => {
   assert.equal(out.guardrail.messages.length, 1, 'only the grounding failure should be reported');
   assert.ok(/not grounded/i.test(out.guardrail.messages[0]));
 });
+
+test('THE SECOND REGRESSION: a BP split out of a run-together number is caught', () => {
+  // Found by evaluating the 2026-08-11 round. The audio says "לחץ דם יציב 12274";
+  // the note claimed "122/74". A plain substring test passed it, because both
+  // "122" and "74" occur inside "12274" — so the note invented a split the
+  // recording never contained and the check waved it through. Digits must not
+  // be flanked by digits.
+  const spoken = 'לחץ דם יציב 12274, דופק 88, חום 37.8';
+  const out = guardPair('objective.vitals.bp', '122/74', 'לחץ דם יציב 12274', spoken);
+
+  assert.equal(
+    out.guardrail.requiresConfirmation,
+    true,
+    '122/74 is not supported by a quote that only contains 12274',
+  );
+  assert.ok(out.guardrail.messages.some((m) => /122/.test(m)));
+});
+
+test('a number genuinely present is still accepted at a digit boundary', () => {
+  const spoken = 'לחץ דם 122 על 74';
+  const out = guardPair('objective.vitals.bp', '122/74', 'לחץ דם 122 על 74', spoken);
+  assert.equal(out.guardrail.requiresConfirmation, false);
+});
+
+test('a Latin word embedded in a longer word does not count as support', () => {
+  const spoken = 'המטופל מקבל Augmentin ופלג׳יל';
+  const out = guardPair('decisions.medications', 'Augment 500', 'המטופל מקבל Augmentin', spoken);
+  assert.equal(out.guardrail.requiresConfirmation, true, '"Augment" must not be satisfied by "Augmentin"');
+});

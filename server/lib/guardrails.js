@@ -90,6 +90,24 @@ function riskTokens(text) {
 }
 
 /**
+ * Is `token` present in `haystack` as a standalone token rather than buried
+ * inside a longer run of the same character class?
+ *
+ * A plain substring test is not enough, and the failure is real: a blood
+ * pressure written as "122/74" from audio that says "לחץ דם יציב 12274" passed,
+ * because both "122" and "74" are substrings of "12274". The note invented a
+ * split the recording never contained, and the check waved it through.
+ *
+ * Digits must therefore not be flanked by digits, and Latin words must not be
+ * flanked by letters.
+ */
+function containsToken(haystack, token) {
+  const escaped = token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const boundary = /^\d/.test(token) ? '\\d' : '[A-Za-z]';
+  return new RegExp(`(?<!${boundary})${escaped}(?!${boundary})`).test(haystack);
+}
+
+/**
  * Apply the deterministic guardrail checks to every field and populate
  * `field.guardrail`. Mutates and returns the same array.
  *
@@ -148,7 +166,7 @@ export function applyGuardrails(transcript, fields) {
     // whether it supports the claim, and that is a human's call.
     if (populated && grounded) {
       const span = normalizeForGrounding(field.sourceSpan);
-      const missing = riskTokens(field.value).filter((tk) => !span.includes(tk));
+      const missing = riskTokens(field.value).filter((tk) => !containsToken(span, tk));
       if (missing.length) {
         requiresConfirmation = true;
         messages.push(
