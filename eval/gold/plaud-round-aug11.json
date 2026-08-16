@@ -1,0 +1,217 @@
+{
+  "$comment": [
+    "Gold standard for the 6-minute Plaud round of 2026-08-11 (recording a9d4db3d, 370s).",
+    "",
+    "This round is unusual and valuable: the source script (docs/טקסט סבב רופאים.docx)",
+    "ends with an author-written validation table of 20 clinical orders, each tagged",
+    "with its type and its patient. That table is CLINICAL INTENT authored by a domain",
+    "owner — not something reverse-engineered from the model's output — so order recall",
+    "is the headline metric here rather than field-level token matching.",
+    "",
+    "THREE-WAY COMPARISON. The script is what was meant; the recording is what the",
+    "microphone and speech-to-text actually captured; the note is what the system",
+    "produced. The system can only ever work from the recording, so each order carries",
+    "an `asrStatus` recording how much of it survived the audio:",
+    "  full    — the order is fully evidenced in the transcript",
+    "  partial — the order is present but a clinical detail was lost",
+    "  lost    — the order is not in the transcript at all; UNACHIEVABLE by any system",
+    "",
+    "That distinction is the point. Without it, an evaluation punishes the system for",
+    "transcription damage and the resulting score says nothing about the pipeline.",
+    "",
+    "CEILING: 17 orders full, 2 partial, 1 lost. Maximum achievable order recall is",
+    "19/20, and one of those 19 is degraded."
+  ],
+  "transcript": "plaud-round-aug11.txt",
+  "expectedPatientCount": 4,
+
+  "authoritativeOrders": [
+    { "id": 1,  "patient": "יוסי כהן",   "type": "medication", "en": "Paracetamol 1 g q6h",              "mustContain": ["אקמול"],                  "asrStatus": "full" },
+    { "id": 2,  "patient": "יוסי כהן",   "type": "medication", "en": "Ibuprofen 400 mg q8h",             "mustContain": ["איבופרופן", "400"],       "asrStatus": "full" },
+    { "id": 3,  "patient": "יוסי כהן",   "type": "medication", "en": "Amlodipine 5 mg now",              "mustContain": ["אמלודיפין"],              "asrStatus": "full" },
+    { "id": 4,  "patient": "יוסי כהן",   "type": "consult",    "en": "Physiotherapy before walks",       "mustContain": ["פיזיותרפיה"],             "asrStatus": "full" },
+    { "id": 5,  "patient": "יוסי כהן",   "type": "followup",   "en": "Hb > 10 → discharge tomorrow",     "mustContain": ["ספירת דם"],               "asrStatus": "partial",
+      "asrNote": "The threshold 'מעל 10' was destroyed by the transcription ('ספירת דם מיאל אסר, שקור מהר'). The discharge criterion is unrecoverable from audio." },
+    { "id": 6,  "patient": "אחמד מנסור", "type": "imaging",    "en": "CT abdomen w/ contrast — URGENT",  "mustContain": ["CT"],                     "asrStatus": "full" },
+    { "id": 7,  "patient": "אחמד מנסור", "type": "bloodtest",  "en": "CBC q6h",                          "mustContain": ["ספירת דם"],               "asrStatus": "full" },
+    { "id": 8,  "patient": "אחמד מנסור", "type": "medication", "en": "Morphine 4 mg IV PRN",             "mustContain": ["מורפין"],                 "asrStatus": "partial",
+      "asrNote": "The route (IV / תוך ורידי) is absent from the transcript; only 'מורפין 4 מיליגרם לפי צורך' was captured." },
+    { "id": 9,  "patient": "אחמד מנסור", "type": "followup",   "en": "Hb < 8 → call senior immediately", "mustContain": ["שמונה"],                  "asrStatus": "full" },
+    { "id": 10, "patient": "רחל לוי",    "type": "culture",    "en": "Wound culture — NOW",              "mustContain": ["תרבית"],                  "asrStatus": "full" },
+    { "id": 11, "patient": "רחל לוי",    "type": "imaging",    "en": "Ultrasound",                       "mustContain": ["אולטרסאונד"],             "asrStatus": "full",
+      "asrNote": "The script contradicts itself: its body says abdominal ultrasound, its orders table says wound ultrasound. Either is accepted." },
+    { "id": 12, "patient": "רחל לוי",    "type": "bloodtest",  "en": "CRP + CBC",                        "mustContain": ["CRP"],                    "asrStatus": "full" },
+    { "id": 13, "patient": "רחל לוי",    "type": "nursing",    "en": "Chewing gum q3h",                  "mustContain": ["מסטיק"],                  "asrStatus": "full" },
+    { "id": 14, "patient": "רחל לוי",    "type": "consult",    "en": "Gastroenterology if no bowel activity by tomorrow", "mustContain": ["גסטרו"], "asrStatus": "full" },
+    { "id": 15, "patient": "רחל לוי",    "type": "consult",    "en": "Anaesthetist today for the epidural", "mustContain": ["מרדים"],               "asrStatus": "full" },
+    { "id": 16, "patient": "מיכאל ברק",  "type": "imaging",    "en": "CT abdomen + pelvis w/ contrast — today", "mustContain": ["אגן"],             "asrStatus": "full" },
+    { "id": 17, "patient": "מיכאל ברק",  "type": "imaging",    "en": "Contrast via drain to exclude leak", "mustContain": ["קונטרסט"],              "asrStatus": "full" },
+    { "id": 18, "patient": "מיכאל ברק",  "type": "bloodtest",  "en": "Lactate — NOW",                    "mustContain": ["לקטט"],                   "asrStatus": "lost",
+      "asrNote": "UNACHIEVABLE. The transcription heard 'ותיקח לו תרבית' (take a culture) where the script orders 'ותקח לקטט' (take a lactate). The word lactate never reaches the system. Any note containing it would be a fabrication." },
+    { "id": 19, "patient": "מיכאל ברק",  "type": "consult",    "en": "Vascular surgery — URGENT",        "mustContain": ["כלי דם"],                 "asrStatus": "full" },
+    { "id": 20, "patient": "מיכאל ברק",  "type": "physio",     "en": "Respiratory physiotherapy — today", "mustContain": ["פיזיותרפיה נשימתית"],    "asrStatus": "full" }
+  ],
+
+  "$medicalTermsComment": [
+    "TERMINOLOGY FIDELITY — a separate axis from order recall.",
+    "",
+    "Order recall asks 'did the instruction arrive'. This asks 'is the clinical",
+    "vocabulary right', and the two diverge: an order can reach the chart while the",
+    "diagnosis attached to it is a different disease.",
+    "",
+    "Two independent comparisons, because they have different owners:",
+    "  document -> audio : transcription fidelity. Not the system's doing.",
+    "  audio -> note     : documentation fidelity. This is what grades the system.",
+    "",
+    "`spokenAs` is what the recording actually contains — null when the term did not",
+    "survive at all. `faithful` tokens mean the note recorded what was said (correct,",
+    "even when the audio itself was wrong). `inferred` tokens mean the note supplied",
+    "clinical vocabulary the audio never contained; that is not automatically wrong —",
+    "restoring a mangled spelling is benign — but naming an organ or a disease the",
+    "recording never named is a clinical assertion the system invented, and a",
+    "reviewer must see it."
+  ],
+  "medicalTerms": [
+    { "patient": "יוסי כהן", "category": "procedure", "docTerm": "כולציסטקטומיה", "en": "cholecystectomy",
+      "spokenAs": "סיסטיקטומיה", "faithful": ["סיסטיקטומיה"], "inferred": ["כיס מרה", "כולציסטקטומיה"],
+      "note": "The audio garbles it to 'חוליית סיסטיקטומיה'. Writing 'כריתת כיס מרה' names the organ correctly but the recording never says gallbladder." },
+    { "patient": "יוסי כהן", "category": "exam", "docTerm": "סימני גירוי", "en": "peritoneal irritation signs",
+      "spokenAs": "סמיני גירוי", "faithful": ["סמיני גירוי"], "inferred": ["סימני גירוי"],
+      "note": "A one-letter transcription slip. Restoring it is spelling, not clinical inference." },
+    { "patient": "יוסי כהן", "category": "drug", "docTerm": "אקמול", "en": "paracetamol", "spokenAs": "אקמול", "faithful": ["אקמול"], "inferred": [] },
+    { "patient": "יוסי כהן", "category": "drug", "docTerm": "איבופרופן", "en": "ibuprofen", "spokenAs": "איבופרופן", "faithful": ["איבופרופן"], "inferred": [] },
+    { "patient": "יוסי כהן", "category": "drug", "docTerm": "אמלודיפין", "en": "amlodipine", "spokenAs": "אמלודיפין", "faithful": ["אמלודיפין"], "inferred": [] },
+
+    { "patient": "אחמד מנסור", "category": "diagnosis", "docTerm": "קרע בטחול", "en": "splenic rupture", "spokenAs": "קרע בטחול", "faithful": ["קרע בטחול", "טחול"], "inferred": [] },
+    { "patient": "אחמד מנסור", "category": "anatomy", "docTerm": "היפוקונדריום שמאלי", "en": "left hypochondrium",
+      "spokenAs": "אפיגסטרי", "faithful": ["אפיגסטרי"], "inferred": ["היפוקונדריום", "היפוכונדריום"],
+      "note": "The recording relocates the pain to the epigastrium. Recording what was said is correct behaviour; writing the script's site would be inventing a finding." },
+    { "patient": "אחמד מנסור", "category": "mechanism", "docTerm": "תאונת דרכים", "en": "road traffic accident",
+      "spokenAs": "טראומה דרכי", "faithful": ["טראומה דרכי", "תאונת דרכים", "דרכים"], "inferred": [],
+      "alteredTo": ["טראומה בטנית"],
+      "note": "Garbled but still road-related in the audio. The note records 'abdominal trauma' — a different mechanism of injury, neither spoken nor implied. Consistent with a splenic injury, which is probably why it was chosen, but it replaces information rather than dropping it." },
+    { "patient": "אחמד מנסור", "category": "drug", "docTerm": "מורפין", "en": "morphine", "spokenAs": "מורפין", "faithful": ["מורפין"], "inferred": [] },
+    { "patient": "אחמד מנסור", "category": "lab", "docTerm": "המוגלובין", "en": "haemoglobin", "spokenAs": "המוגלובין", "faithful": ["המוגלובין"], "inferred": [] },
+
+    { "patient": "רחל לוי", "category": "procedure", "docTerm": "המיקולקטומי", "en": "hemicolectomy", "spokenAs": "המיקולקטומי", "faithful": ["המיקולקטומי"], "inferred": [] },
+    { "patient": "רחל לוי", "category": "lab", "docTerm": "CRP", "en": "CRP", "spokenAs": "CRP", "faithful": ["CRP"], "inferred": [] },
+    { "patient": "רחל לוי", "category": "procedure", "docTerm": "אפידורל", "en": "epidural",
+      "spokenAs": "הפידורל", "faithful": ["הפידורל"], "inferred": ["אפידורל"],
+      "note": "Spelling restoration, clinically unambiguous." },
+    { "patient": "רחל לוי", "category": "test", "docTerm": "תרבית", "en": "wound culture", "spokenAs": "תרבית", "faithful": ["תרבית"], "inferred": [] },
+
+    { "patient": "מיכאל ברק", "category": "anatomy", "docTerm": "מעי הדק", "en": "small bowel",
+      "spokenAs": null, "faithful": [], "inferred": ["מעי הדק", "מעי דק"],
+      "note": "DESTROYED — the audio reads 'תוקן קרע במיד דאג'. The torn organ is unrecoverable. Naming it would be invention; omitting it is the safe outcome." },
+    { "patient": "מיכאל ברק", "category": "procedure", "docTerm": "שטיפת פריטוניאום", "en": "peritoneal lavage", "spokenAs": "שטיפת פריטונאום", "faithful": ["פריטונאום", "פריטוניאום"], "inferred": [] },
+    { "patient": "מיכאל ברק", "category": "drug", "docTerm": "טאזובקטם", "en": "tazobactam",
+      "spokenAs": "אוגמנטין", "faithful": ["אוגמנטין"], "inferred": ["טאזובקטם", "פיפרצילין"],
+      "note": "The recording names a different antibiotic than the script. The note must follow the recording." },
+    { "patient": "מיכאל ברק", "category": "drug", "docTerm": "מטרונידזול", "en": "metronidazole",
+      "spokenAs": "פלג'יל", "faithful": ["פלג'יל", "פלגיל"], "inferred": ["מטרונידזול"],
+      "note": "Flagyl IS metronidazole, so restoring the generic name would be defensible — but it is still the system choosing a name the speaker did not use." },
+    { "patient": "מיכאל ברק", "category": "history", "docTerm": "פקקת ורידים", "en": "venous thrombosis (DVT)",
+      "spokenAs": "קרדיופתיה איסכמית", "faithful": ["קרדיופתיה"], "inferred": ["פקקת", "ורידים עמוקים", "DVT"],
+      "note": "The recording replaces the DVT history with ischaemic cardiomyopathy — a different disease, and the one that justifies the vascular consult. Writing DVT back would be invention." },
+    { "patient": "מיכאל ברק", "category": "lab", "docTerm": "לקטט", "en": "lactate",
+      "spokenAs": null, "faithful": [], "inferred": ["לקטט"],
+      "note": "DESTROYED — heard as 'תרבית'. Any note containing lactate is fabricating it." }
+  ],
+
+  "patients": [
+    {
+      "label": "יוסי כהן",
+      "labelAliases": ["יוסי"],
+      "expectedFields": [
+        { "fieldId": "objective.vitals.bp",   "mustContain": ["128", "78"], "why": "BP 128/78 — captured correctly this time" },
+        { "fieldId": "objective.vitals.hr",   "mustContain": ["82"],        "why": "pulse 82" },
+        { "fieldId": "objective.vitals.temp", "mustContain": ["37"],        "why": "temperature 37" },
+        { "fieldId": "*", "mustContain": ["4"],      "why": "pain grade 4" },
+        { "fieldId": "objective.abdomen", "mustContain": ["רכה"], "why": "soft abdomen, no peritoneal signs" }
+      ],
+      "forbiddenFields": [
+        { "fieldId": "objective.vitals.spo2", "why": "no saturation was spoken" },
+        { "fieldId": "objective.vitals.rr",   "why": "no respiratory rate was spoken" }
+      ],
+      "forbiddenText": [
+        { "text": "מעל 10", "why": "the Hb>10 discharge threshold was destroyed by the transcription; writing it back is invention" }
+      ],
+      "foreignTokens": [
+        { "text": "מורפין",  "why": "Ahmad's opioid" },
+        { "text": "מסטיק",   "why": "Rachel's gum protocol" },
+        { "text": "קונטרסט", "why": "Michael's drain study" },
+        { "text": "38.4",    "why": "Rachel's fever" }
+      ]
+    },
+    {
+      "label": "אחמד מנסור",
+      "labelAliases": ["אחמד", "אחמד בנסור"],
+      "expectedFields": [
+        { "fieldId": "objective.vitals.bp", "mustContain": ["118", "72"], "why": "BP 118/72" },
+        { "fieldId": "objective.vitals.hr", "mustContain": ["76"],        "why": "pulse 76" },
+        { "fieldId": "*", "mustContain": ["9.2"],   "why": "haemoglobin 9.2 this morning" },
+        { "fieldId": "*", "mustContain": ["טחול"],  "why": "grade 2 splenic injury — named explicitly in this recording" }
+      ],
+      "forbiddenFields": [
+        { "fieldId": "objective.vitals.spo2", "why": "no saturation was spoken" }
+      ],
+      "forbiddenText": [
+        { "text": "היפוקונדריום", "why": "the script says left hypochondrium; the recording says epigastric — writing the script's site is not transcription" }
+      ],
+      "foreignTokens": [
+        { "text": "אמלודיפין", "why": "Yossi's antihypertensive" },
+        { "text": "מסטיק",     "why": "Rachel's gum protocol" },
+        { "text": "קונטרסט",   "why": "Michael's drain study" },
+        { "text": "38.4",      "why": "Rachel's fever" }
+      ]
+    },
+    {
+      "label": "רחל לוי",
+      "labelAliases": ["רחל"],
+      "expectedFields": [
+        { "fieldId": "objective.vitals.temp", "mustContain": ["38.4"],      "why": "fever 38.4 overnight, down to 37.1" },
+        { "fieldId": "objective.vitals.bp",   "mustContain": ["120", "68"], "why": "BP 120/68" },
+        { "fieldId": "objective.vitals.hr",   "mustContain": ["94"],        "why": "pulse 94" },
+        { "fieldId": "*", "mustContain": ["אדום"], "why": "wound red at the upper edge, no discharge" },
+        { "fieldId": "*", "mustContain": ["גז"],   "why": "has not passed flatus" }
+      ],
+      "forbiddenFields": [
+        { "fieldId": "objective.vitals.spo2", "why": "no saturation was spoken" },
+        { "fieldId": "objective.vitals.rr",   "why": "no respiratory rate was spoken" }
+      ],
+      "forbiddenText": [],
+      "foreignTokens": [
+        { "text": "מורפין",    "why": "Ahmad's opioid" },
+        { "text": "אמלודיפין", "why": "Yossi's antihypertensive" },
+        { "text": "קונטרסט",   "why": "Michael's drain study" },
+        { "text": "איבופרופן", "why": "Yossi's analgesia" }
+      ]
+    },
+    {
+      "label": "מיכאל ברק",
+      "labelAliases": ["מיכאל"],
+      "expectedFields": [
+        { "fieldId": "*", "mustContain": ["45"],   "why": "45 years old" },
+        { "fieldId": "objective.vitals.temp", "mustContain": ["37.8"], "why": "temperature 37.8" },
+        { "fieldId": "objective.vitals.hr",   "mustContain": ["88"],   "why": "pulse 88" },
+        { "fieldId": "*", "mustContain": ["50"],   "why": "abdominal drain under 50 cc in 12 hours" },
+        { "fieldId": "*", "mustContain": ["600"],  "why": "urine output 600 ml" }
+      ],
+      "forbiddenFields": [
+        { "fieldId": "objective.vitals.spo2", "why": "no saturation was spoken" }
+      ],
+      "forbiddenText": [
+        { "text": "122/74",   "why": "the recording runs the BP together as '12274'; splitting it is a guess, not a transcription" },
+        { "text": "טאזובקטם", "why": "the recording says Augmentin + Flagyl, not Tazobactam + Metronidazole" },
+        { "text": "פקקת",     "why": "the recording says ischemic cardiomyopathy, not venous thrombosis — the script's DVT history is absent from the audio" },
+        { "text": "לקטט",     "why": "UNACHIEVABLE order 18 — the audio says 'culture' where the script says 'lactate'. Writing lactate is pure invention." }
+      ],
+      "foreignTokens": [
+        { "text": "מסטיק",     "why": "Rachel's gum protocol" },
+        { "text": "אמלודיפין", "why": "Yossi's antihypertensive" },
+        { "text": "מורפין",    "why": "Ahmad's opioid" },
+        { "text": "38.4",      "why": "Rachel's fever" }
+      ]
+    }
+  ]
+}

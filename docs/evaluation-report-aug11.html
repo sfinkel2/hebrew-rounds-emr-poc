@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Evaluation — 6-minute ward round, 11 August 2026</title>
+<style>
+  :root{--bg:#fff;--fg:#15202b;--muted:#5c6a78;--rule:#e4e9ef;--panel:#f7f9fb;
+        --bad:#b42318;--good:#067647;--warn:#b54708;--info:#1849a9;
+        --badbg:#fef3f2;--goodbg:#ecfdf3;--warnbg:#fffaeb;--infobg:#eff6ff}
+  @media (prefers-color-scheme:dark){
+    :root{--bg:#0e141d;--fg:#e7eef6;--muted:#98a6b6;--rule:#232f3e;--panel:#141c27;
+          --bad:#ff8a80;--good:#7ee2a8;--warn:#f5c26b;--info:#8ab4f8;
+          --badbg:#2a1614;--goodbg:#10231a;--warnbg:#2a2113;--infobg:#111d2e}}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+       font:16.5px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:900px;margin:0 auto;padding:52px 24px 110px}
+  h1{font-size:32px;line-height:1.18;margin:0 0 10px;letter-spacing:-.022em}
+  h2{font-size:22px;margin:52px 0 6px;letter-spacing:-.012em}
+  h2+.lede{color:var(--muted);font-size:15px;margin:0 0 18px;padding-bottom:12px;border-bottom:1px solid var(--rule)}
+  h3{font-size:17.5px;margin:30px 0 8px}
+  p{margin:0 0 15px}
+  .deck{font-size:18px;color:var(--muted);margin:0 0 6px}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:28px}
+  code{background:var(--panel);padding:1px 5px;border-radius:4px;
+       font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13.5px}
+  .he{direction:rtl;unicode-bidi:isolate;text-align:right;display:block;background:var(--panel);
+      border:1px solid var(--rule);border-radius:7px;padding:9px 12px;margin:8px 0;line-height:1.85;
+      font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:14px}
+  .heI{direction:rtl;unicode-bidi:isolate}
+  .en{color:var(--muted);font-size:14px;margin:-2px 0 14px;font-style:italic}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:12px;margin:22px 0}
+  .card{background:var(--panel);border:1px solid var(--rule);border-radius:11px;padding:15px 17px}
+  .card .n{font-size:27px;font-weight:660;letter-spacing:-.02em;line-height:1.12}
+  .card .l{font-size:12.5px;color:var(--muted);margin-top:6px;line-height:1.45}
+  .n.bad{color:var(--bad)}.n.good{color:var(--good)}.n.warn{color:var(--warn)}
+  .tablewrap{overflow-x:auto;margin:16px 0}
+  table{border-collapse:collapse;width:100%;font-size:14.5px;min-width:540px}
+  th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--rule);vertical-align:top}
+  th{font-size:12px;text-transform:uppercase;letter-spacing:.045em;color:var(--muted);font-weight:600}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  tr.total td{font-weight:660;border-top:2px solid var(--rule);border-bottom:none}
+  .z{color:var(--good);font-weight:650}.x{color:var(--bad);font-weight:650}
+  caption{caption-side:top;text-align:left;font-size:13.5px;color:var(--muted);padding-bottom:8px}
+  .box{border-left:3px solid var(--rule);background:var(--panel);padding:14px 18px;margin:18px 0;border-radius:0 9px 9px 0}
+  .box.bad{border-left-color:var(--bad);background:var(--badbg)}
+  .box.good{border-left-color:var(--good);background:var(--goodbg)}
+  .box.warn{border-left-color:var(--warn);background:var(--warnbg)}
+  .box.info{border-left-color:var(--info);background:var(--infobg)}
+  .box p:last-child{margin-bottom:0}
+  .box h4{margin:0 0 8px;font-size:15.5px}
+  dl{margin:0}dt{font-weight:650;margin-top:15px}dd{margin:3px 0 0;color:var(--muted);font-size:15px}
+  ul,ol{margin:0 0 15px;padding-left:24px}li{margin-bottom:7px}
+  footer{margin-top:58px;padding-top:18px;border-top:1px solid var(--rule);color:var(--muted);font-size:13.5px}
+  .pill{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+        padding:2px 8px;border-radius:4px;background:var(--rule);color:var(--muted)}
+  .pill.good{background:var(--good);color:#fff}.pill.bad{background:var(--bad);color:#fff}
+  .pill.warn{background:var(--warn);color:#fff}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Evaluation — 6-minute ward round</h1>
+<p class="deck">
+  A four-patient surgical round was recorded, run through the system, and every clinical order it
+  produced was checked against a list written in advance by the round's author.
+</p>
+<p class="meta">
+  Recording <code>a9d4db3d</code> &middot; 11 Aug 2026 &middot; 370 seconds &middot; four patients &middot; spoken Hebrew<br>
+  Source script: <code>docs/טקסט סבב רופאים.docx</code> &middot; model under test:
+  <strong>Claude Opus 4.8</strong> (the shipped default) &middot; one run, 11 live calls
+</p>
+
+<div class="box info">
+  <p>
+    <strong>What makes this evaluation stronger than the previous one.</strong> The source document ends
+    with a validation table of <strong>20 clinical orders</strong>, each tagged with its type and its
+    patient. That list is clinical intent written by a domain expert <em>before</em> any model saw the
+    audio — not something reverse-engineered from the system's output. It lets us ask the only question
+    that really matters: <em>did every order the senior doctor gave reach the right patient's chart?</em>
+  </p>
+</div>
+
+<h2>Evaluation criteria</h2>
+<p class="lede">What was measured, how each was judged, and what counts as failure.</p>
+
+<p>
+  Every number below is produced by ordinary comparison code, not by a model. <strong>No AI grades
+  another AI here.</strong> That matters because the system contains its own AI "checker", and that
+  checker is one of the things under test — it cannot also be the referee.
+</p>
+
+<h3>The primary criterion: order recall</h3>
+<dl>
+  <dt><span class="pill good">Captured</span> the order reached the correct patient's chart</dt>
+  <dd>Success. The clinical instruction is where a clinician would look for it.</dd>
+
+  <dt><span class="pill bad">Misfiled</span> the order appears somewhere in the round, but in the wrong patient's chart</dt>
+  <dd>Counted as worse than missing it. A missing order is a gap someone may notice; an order sitting in
+      the wrong patient's record is an instruction attached to a person it was never meant for.</dd>
+
+  <dt><span class="pill bad">Missed</span> the order is in the audio but in no chart</dt>
+  <dd>Failure. The system had the evidence and did not extract it.</dd>
+
+  <dt><span class="pill warn">Unachievable</span> the order never survived into the audio</dt>
+  <dd><strong>Excluded from the score</strong> and reported separately. If the transcription destroyed an
+      order before the pipeline ever saw it, counting it against the system measures the microphone, not
+      the software.</dd>
+
+  <dt><span class="pill bad">Fabricated</span> an unachievable order nonetheless appears in a chart</dt>
+  <dd>The most serious failure available. It means the note contains a clinical instruction that exists
+      nowhere in the recording.</dd>
+</dl>
+
+<h3>The second criterion: medical terminology</h3>
+<p>
+  Order recall asks <em>did the instruction arrive</em>. Terminology asks <em>is the clinical vocabulary
+  right</em>, and the two can diverge badly: an order can reach the correct chart while the diagnosis
+  attached to it names a different disease. This is measured as two separate comparisons, because they
+  have different owners.
+</p>
+<dl>
+  <dt>Transcription fidelity — <em>document → audio</em></dt>
+  <dd>Did each medical term survive the microphone intact? This is a property of the recording, not of
+      the software, and it sets the ceiling for everything downstream.</dd>
+
+  <dt>Documentation fidelity — <em>audio → note</em></dt>
+  <dd>Did the note record the terminology as it was actually spoken? This is what grades the system.
+      Five verdicts:</dd>
+</dl>
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Verdict</th><th>Meaning</th><th>Judged as</th></tr></thead>
+  <tbody>
+    <tr><td><span class="pill good">Faithful</span></td>
+        <td>The note records the term as spoken — <em>even where the recording contradicts the script</em>.</td>
+        <td class="z">Correct</td></tr>
+    <tr><td><span class="pill">Interpreted</span></td>
+        <td>The note supplies vocabulary the audio did not contain, derived from context.</td>
+        <td>Needs review — benign for a spelling, a clinical assertion when it names an organ</td></tr>
+    <tr><td><span class="pill warn">Altered</span></td>
+        <td>The note replaces the spoken term with a different clinical term.</td>
+        <td class="x">Failure — puts an unspoken fact in the chart</td></tr>
+    <tr><td><span class="pill">Omitted</span></td>
+        <td>The term was destroyed in transcription and the note declined to guess.</td>
+        <td class="z">Safe — the correct response to unrecoverable audio</td></tr>
+    <tr><td><span class="pill bad">Invented</span></td>
+        <td>The note asserts a term that was destroyed beyond recognition.</td>
+        <td class="x">Most serious failure</td></tr>
+  </tbody>
+</table>
+</div>
+<p>
+  Note the deliberate asymmetry: <strong>omitting is scored as success and altering as failure.</strong>
+  A clinician who sees "repair of a tear" knows to check which organ. A clinician who sees the wrong
+  organ has no reason to check anything.
+</p>
+
+<h3>Supporting criteria</h3>
+<dl>
+  <dt>Cross-patient contamination</dt>
+  <dd>Does one patient's data appear in another's chart? Judged by searching each chart for tokens that
+      belong exclusively to a different patient.</dd>
+
+  <dt>Invented quote</dt>
+  <dd>Every extracted fact must carry a word-for-word quote from the recording. This checks whether that
+      quote actually exists in the transcript.</dd>
+
+  <dt>Quote doesn't support the value</dt>
+  <dd>Stricter. The quote is real, but it does not contain the number or drug the note claims. The quote
+      looks like evidence without being evidence.</dd>
+
+  <dt>Silent transcription repair</dt>
+  <dd>The system rewrote a garbled phrase into the medically plausible version, inventing a fact that was
+      never spoken. Detected against a list of strings known to be <em>absent</em> from the audio.</dd>
+
+  <dt>Field collisions</dt>
+  <dd>Two extracted facts competing for the same slot in the record. These are now <em>fused</em> into one
+      field rather than overwritten, so nothing is lost — but in a whole-round note it means four
+      patients' blood pressures share one blood-pressure field.</dd>
+</dl>
+
+<h2>The ceiling: what the audio could support</h2>
+<p class="lede">Established before the system was involved, by comparing the script against the transcript.</p>
+
+<div class="cards">
+  <div class="card"><div class="n good">17</div><div class="l">orders fully preserved in the audio</div></div>
+  <div class="card"><div class="n warn">2</div><div class="l">preserved but missing a clinical detail</div></div>
+  <div class="card"><div class="n bad">1</div><div class="l">destroyed by transcription</div></div>
+  <div class="card"><div class="n">19 / 20</div><div class="l">maximum achievable score</div></div>
+</div>
+
+<div class="box bad">
+  <h4>Order 18 — lactate — cannot be recovered by any system</h4>
+  <p>The script instructs:</p>
+  <div class="he">ותקח לקטט — עכשיו</div>
+  <p class="en">"and take a lactate — now"</p>
+  <p>The transcription heard:</p>
+  <div class="he">ותיקח לו תרבית. עכשיו</div>
+  <p class="en">"and take him a culture. now"</p>
+  <p>
+    <strong>The word "lactate" never reaches the software.</strong> A lactate is ordered to detect
+    hidden tissue hypoperfusion; a wound culture answers a different question entirely. No downstream
+    processing can recover this — and critically, any note that <em>did</em> contain "lactate" would be
+    fabricating it.
+  </p>
+</div>
+
+<p>The two partially-damaged orders:</p>
+<ul>
+  <li><strong>Order 5 (Yossi Cohen)</strong> — "if haemoglobin is above 10, discharge tomorrow" came
+      through as <span class="heI">ספירת דם מיאל אסר, שקור מהר</span>. The blood count survives; the
+      threshold of 10 does not. The discharge criterion is unrecoverable.</li>
+  <li><strong>Order 8 (Ahmad Mansour)</strong> — morphine 4 mg survives, but the route
+      (<span class="heI">תוך ורידי</span> / IV) is absent from the audio.</li>
+</ul>
+
+<h2>Result</h2>
+<p class="lede">Against the author's 20-order table, with the shipped configuration.</p>
+
+<div class="cards">
+  <div class="card"><div class="n good">19 / 19</div><div class="l">achievable orders captured (100%)</div></div>
+  <div class="card"><div class="n good">0</div><div class="l">misfiled to the wrong patient</div></div>
+  <div class="card"><div class="n good">0</div><div class="l">missed</div></div>
+  <div class="card"><div class="n good">0</div><div class="l">fabricated</div></div>
+  <div class="card"><div class="n good">4 / 4</div><div class="l">patients correctly separated</div></div>
+  <div class="card"><div class="n good">0</div><div class="l">cross-patient contamination</div></div>
+  <div class="card"><div class="n good">0</div><div class="l">invented medical terms</div></div>
+  <div class="card"><div class="n warn">1</div><div class="l">altered medical term</div></div>
+</div>
+
+<div class="box good">
+  <p>
+    <strong>Every order that survived the audio reached the correct patient's chart</strong>, and the one
+    order the transcription destroyed was <em>not</em> invented. On the criteria above, this is the best
+    possible outcome for this recording.
+  </p>
+</div>
+
+<div class="tablewrap">
+<table>
+  <caption>Per-patient, with patient-splitting on (the shipped configuration).</caption>
+  <thead><tr>
+    <th>Patient</th><th class="num">Orders</th><th class="num">Fields</th><th class="num">Facts captured</th>
+    <th class="num">Contamination</th><th class="num">Invented quotes</th>
+    <th class="num">Quote gaps</th><th class="num">Silent repairs</th>
+  </tr></thead>
+  <tbody>
+    <tr><td><span class="heI">יוסי כהן</span> Yossi Cohen</td><td class="num">5/5</td><td class="num">13</td><td class="num">5/5</td><td class="num z">0</td><td class="num z">0</td><td class="num">1</td><td class="num z">0</td></tr>
+    <tr><td><span class="heI">אחמד מנסור</span> Ahmad Mansour</td><td class="num">4/4</td><td class="num">9</td><td class="num">4/4</td><td class="num z">0</td><td class="num z">0</td><td class="num">3</td><td class="num z">0</td></tr>
+    <tr><td><span class="heI">רחל לוי</span> Rachel Levy</td><td class="num">6/6</td><td class="num">12</td><td class="num">5/5</td><td class="num z">0</td><td class="num z">0</td><td class="num z">0</td><td class="num z">0</td></tr>
+    <tr><td><span class="heI">מיכאל ברק</span> Michael Barak</td><td class="num">4/5*</td><td class="num">12</td><td class="num">4/5</td><td class="num z">0</td><td class="num z">0</td><td class="num">5</td><td class="num x">1</td></tr>
+    <tr class="total"><td>Total</td><td class="num">19/19</td><td class="num">46</td><td class="num">18/19</td><td class="num z">0</td><td class="num z">0</td><td class="num">9</td><td class="num x">1</td></tr>
+  </tbody>
+</table>
+</div>
+<p style="font-size:13.5px;color:var(--muted)">
+  * Michael Barak has 5 orders in the table; one of them is the unachievable lactate, so 4 are scorable.
+  The single missed fact is his age (45).
+</p>
+
+<h2>Medical terminology</h2>
+<p class="lede">Twenty clinical terms from the source document, traced through the audio into the note.</p>
+
+<div class="cards">
+  <div class="card"><div class="n bad">9 / 20</div><div class="l">terms reached the software intact</div></div>
+  <div class="card"><div class="n good">0</div><div class="l">invented terms</div></div>
+  <div class="card"><div class="n warn">1</div><div class="l">altered term</div></div>
+  <div class="card"><div class="n good">78%</div><div class="l">of usable terms recorded as spoken</div></div>
+</div>
+
+<h3>Transcription: less than half the vocabulary arrived unchanged</h3>
+<p>
+  Only <strong>9 of the 20 clinical terms</strong> reached the software exactly as written in the script.
+  That headline overstates the harm, though — the eleven that changed are not equally serious:
+</p>
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Severity</th><th class="num">Count</th><th>Examples</th></tr></thead>
+  <tbody>
+    <tr><td>Spelling slip, clinically unambiguous</td><td class="num">3</td>
+        <td><span class="heI">סמיני</span> for <span class="heI">סימני</span>;
+            <span class="heI">הפידורל</span> for <span class="heI">אפידורל</span>;
+            <span class="heI">פריטונאום</span> for <span class="heI">פריטוניאום</span></td></tr>
+    <tr><td>Garbled but recoverable from context</td><td class="num">2</td>
+        <td><span class="heI">חוליית סיסטיקטומיה</span> for cholecystectomy;
+            <span class="heI">טראומה דרכי</span> for road traffic accident</td></tr>
+    <tr><td class="x">A <em>different</em> clinical term</td><td class="num x">4</td>
+        <td>epigastric for left hypochondrium; Augmentin for Tazobactam;
+            Flagyl for Metronidazole; ischaemic cardiomyopathy for DVT history</td></tr>
+    <tr><td class="x">Destroyed beyond recovery</td><td class="num x">2</td>
+        <td>small bowel → <span class="heI">מיד דאג</span>; lactate → <span class="heI">תרבית</span></td></tr>
+  </tbody>
+</table>
+</div>
+<div class="box bad">
+  <p>
+    The four "different clinical term" rows are the ones to worry about, and <strong>none of them are the
+    system's doing.</strong> The recording genuinely says Augmentin where the script says Tazobactam, and
+    genuinely says ischaemic cardiomyopathy where the script says a history of venous thrombosis. A
+    system that faithfully transcribes will faithfully carry these forward — and it did.
+  </p>
+  <p>
+    This is the strongest argument in the evaluation for treating <em>recording quality</em> as a
+    first-class clinical risk rather than an IT detail. Four wrong drugs and diagnoses entered the
+    pipeline before any AI touched them.
+  </p>
+</div>
+
+<h3>Documentation: what the system did with what it received</h3>
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Verdict</th><th class="num">Count</th><th>Detail</th></tr></thead>
+  <tbody>
+    <tr><td><span class="pill good">Faithful</span></td><td class="num">14</td>
+        <td>Recorded as spoken — including all four terms where the recording contradicts the script.</td></tr>
+    <tr><td><span class="pill">Interpreted</span></td><td class="num">3</td>
+        <td>Two spelling restorations, plus writing <span class="heI">כריתת כיס מרה</span>
+            (gallbladder removal) for the garbled cholecystectomy.</td></tr>
+    <tr><td><span class="pill warn">Altered</span></td><td class="num x">1</td>
+        <td>Injury mechanism — see below.</td></tr>
+    <tr><td><span class="pill">Omitted</span></td><td class="num">2</td>
+        <td>Both destroyed terms. The correct response.</td></tr>
+    <tr><td><span class="pill bad">Invented</span></td><td class="num z">0</td>
+        <td>No term was asserted without basis in the audio.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="box good">
+  <h4>The system declined to guess twice, where guessing was tempting</h4>
+  <p>
+    The audio says <span class="heI">תוקן קרע במיד דאג</span> — a repaired tear in something
+    unintelligible. The note records:
+  </p>
+  <div class="he">תיקון קרע ושטיפת פריטונאום</div>
+  <p class="en">"repair of a tear and peritoneal lavage"</p>
+  <p>
+    <strong>It dropped the organ rather than inferring it.</strong> Given the context — an abdominal stab
+    wound with peritoneal lavage — "small bowel" would have been an easy and probably correct guess. The
+    same restraint appears with the lactate: the note records
+    <span class="heI">נטילת תרבית</span> (taking a culture), following the audio, and never mentions
+    lactate. Both are the behaviour you want.
+  </p>
+</div>
+
+<div class="box warn">
+  <h4>The one alteration: a changed mechanism of injury</h4>
+  <p>The audio:</p>
+  <div class="he">יומיים אחרי טראומה דרכי</div>
+  <p class="en">"two days after road trauma"</p>
+  <p>The note:</p>
+  <div class="he">יומיים לאחר טראומה בטנית</div>
+  <p class="en">"two days after abdominal trauma"</p>
+  <p>
+    The word "road" appears nowhere in the note, and "abdominal" appears nowhere in the audio. For a
+    grade 2 splenic injury, abdominal trauma is a reasonable inference — but it is an inference that
+    <em>replaced</em> information rather than dropping it. Mechanism of injury drives what else gets
+    looked for; a road traffic accident prompts questions a stab wound does not.
+  </p>
+  <p>
+    This is the same class of behaviour as the <code>122/74</code> blood pressure: filling a gap with the
+    most plausible clinical content. It is right more often than not, and that is precisely what makes it
+    hard to catch.
+  </p>
+</div>
+
+<h2>The one real defect</h2>
+<p class="lede">A blood pressure the recording never contained.</p>
+
+<p>The audio, word for word:</p>
+<div class="he">לחץ דם יציב 12274, דופק 88, חום 37.8</div>
+<p class="en">"blood pressure stable 12274, pulse 88, temperature 37.8"</p>
+<p>What the system wrote:</p>
+<div class="he">122/74</div>
+
+<div class="box bad">
+  <p>
+    The script does say 122/74 — but the recording runs it together as a single number, and
+    <strong>the system decided where to split it.</strong> That is a guess dressed as a reading. It
+    happens to be the right guess here; on a different round the same behaviour produces a confident,
+    well-quoted blood pressure that nobody ever said.
+  </p>
+  <p>
+    This is the identical failure mode found in the previous round (where a systolic of 28 became 128),
+    which suggests it is a property of the pipeline rather than a one-off.
+  </p>
+</div>
+
+<div class="box warn">
+  <h4>This evaluation found a bug in the safeguard built to catch exactly this</h4>
+  <p>
+    A check was added after the previous evaluation requiring every number in a value to appear in its
+    quote. It <strong>did not fire</strong> here — because <code>122</code> and <code>74</code> are both
+    substrings of <code>12274</code>, so a naive text search found them and passed the field.
+  </p>
+  <p>
+    Fixed: numbers must now match at digit boundaries, so a number cannot be "found" inside a longer
+    number. With the fix, this field is correctly held for human confirmation. The same bug existed in
+    the evaluation harness itself, which is why its quote-gap metric also missed it; both are corrected
+    and the figures above are from the corrected run.
+  </p>
+</div>
+
+<h2>Without patient-splitting</h2>
+<p class="lede">The same recording, structured as one note — the behaviour before this layer existed.</p>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Measure</th><th class="num">Split by patient</th><th class="num">One note</th></tr></thead>
+  <tbody>
+    <tr><td>Charts produced</td><td class="num">4</td><td class="num">1</td></tr>
+    <tr><td>Cross-patient contamination</td><td class="num z">0</td><td class="num x">13</td></tr>
+    <tr><td>Colliding fields</td><td class="num">4 (within a patient)</td><td class="num x">13</td></tr>
+    <tr><td>Worst collision</td><td class="num">plan ×2</td><td class="num x">plan ×7</td></tr>
+    <tr><td>Quote gaps</td><td class="num">9</td><td class="num x">11</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>
+  In the single-note version every patient's chart carries four pieces of someone else's data — Ahmad's
+  morphine, Rachel's gum protocol and 38.4&nbsp;°C fever, Yossi's amlodipine. Seven separate plan items
+  and four different blood pressures are fused into one field each:
+</p>
+<div class="he">מורפין 4 מ"ג לפי צורך, לא יותר מפעם ב-4 שעות</div>
+<p class="en">Ahmad's opioid — as it appears inside Michael Barak's medication field.</p>
+
+<div class="box info">
+  <p>
+    Note that the collisions no longer <em>lose</em> data: competing values are now joined rather than
+    overwritten. That is an improvement, but it is not a fix — a blood-pressure field reading
+    "128/78; 118/72; 120/68; 122/74" is unusable, just unusable in a visible way rather than a silent one.
+  </p>
+</div>
+
+<h2>What the AI checker contributed</h2>
+<p class="lede">The system's own adversarial reviewer, measured rather than assumed.</p>
+<p>
+  Across the four split charts the checker returned <strong>"properly evidenced" for 45 of 46 fields</strong>,
+  including the fabricated blood pressure. One field was marked ambiguous. On the previous round it
+  returned "properly evidenced" for all 52 fields, again including the defects.
+</p>
+<div class="box warn">
+  <p>
+    <strong>Treat it as a second opinion, not a gate.</strong> Every defect this evaluation found was
+    caught by ordinary comparison code, not by the AI reviewer. The deterministic checks are what carry
+    the safety argument.
+  </p>
+</div>
+
+<h2>Limits of this evaluation</h2>
+<ul>
+  <li><strong>One recording, one run, one model.</strong> Not an average. Earlier testing showed real
+      run-to-run variation on identical input.</li>
+  <li><strong>A scripted round, read aloud.</strong> Cleaner than a real ward round — less crosstalk, no
+      background noise, cooperative speakers. Performance here is an upper bound on live conditions.</li>
+  <li><strong>The audio diverges from the script in ways beyond the lactate.</strong> The recording says
+      epigastric where the script says left hypochondrium; Augmentin and Flagyl where the script says
+      Tazobactam and Metronidazole; ischaemic cardiomyopathy where the script says a history of venous
+      thrombosis. Grading is against the <em>recording</em>, since that is all the system receives — but
+      it means the script is not a perfect answer key for anything except the orders table.</li>
+  <li><strong>The transcription also inserted a negative finding.</strong> <span class="heI">"אין כאב מקומי"</span>
+      ("no local pain") appears in Rachel's presentation and is not in the script — and she reports pain
+      on examination moments later. Nothing in the pipeline can detect a contradiction introduced upstream
+      of it.</li>
+  <li><strong>Quote-gap counts include benign cases.</strong> Several arise from the note writing a digit
+      where the audio spoke a Hebrew numeral (<span class="heI">שמונה</span> → 8). These are safe to
+      confirm but do inflate the count; the number that matters is the one fabrication.</li>
+</ul>
+
+<h2>Conclusions</h2>
+<ol>
+  <li><strong>On its primary criterion the system scored the maximum available:</strong> 19 of 19
+      achievable orders, correct patient, no fabrication, no contamination.</li>
+  <li><strong>Transcription quality is now the binding constraint, not the language model.</strong> The
+      only order that failed to reach a chart was destroyed before the software saw it, and only 9 of 20
+      clinical terms arrived intact — four of them replaced by a <em>different</em> drug or diagnosis
+      before any AI was involved. Improving the recording setup would raise the ceiling more than
+      changing models would.</li>
+  <li><strong>Terminology handling is conservative in the right places.</strong> Zero invented terms,
+      and the system twice declined to name something the audio had destroyed where a plausible guess
+      was available. The single alteration — road trauma recorded as abdominal trauma — is the
+      exception worth watching.</li>
+  <li><strong>Splitting the round by patient remains load-bearing.</strong> Zero contamination with it,
+      thirteen instances without.</li>
+  <li><strong>Number-splitting is an open weakness.</strong> Seen in both evaluated rounds. The guardrail
+      now catches it, but the underlying behaviour — inferring structure in a garbled number — is
+      unchanged.</li>
+  <li><strong>Verify the safeguards, not just the output.</strong> The check written for this exact
+      defect was itself defective and passed the case it was built for. It took a fresh recording to
+      expose it.</li>
+</ol>
+
+<footer>
+  Generated from <code>eval/results/aug11-opus.json</code>. Reproduce with <code>npm run eval aug11</code>.
+  Criteria and metric definitions: <code>eval/README.md</code>; answer key:
+  <code>eval/gold/plaud-round-aug11.json</code>. Hebrew clinical content is reproduced word-for-word and
+  never translated — the quote check depends on it being exact; English glosses are for readability only.
+</footer>
+
+</div>
+</body>
+</html>
